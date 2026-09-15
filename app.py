@@ -1,7 +1,8 @@
 import os
 import base64
+import io
 from datetime import datetime, timedelta
-from flask import Flask, render_template, render_template_string, request, redirect, url_for, session, flash, g, Response
+from flask import Flask, render_template, render_template_string, request, redirect, url_for, session, flash, g, Response, send_file
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 import psycopg2
@@ -120,6 +121,38 @@ def image_src_filter(img_val):
     if str(img_val).startswith('data:image'):
         return img_val
     return url_for('static', filename='uploads/' + str(img_val))
+
+# ==============================================================================
+# 📸 مسار توليد رابط صورة حقيقي ومباشر لظهور الصورة المصغرة في واتساب وفيسبوك
+# ==============================================================================
+@app.route('/news-image/<int:news_id>')
+def serve_news_image(news_id):
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT image FROM news WHERE id = %s;", (news_id,))
+    row = cursor.fetchone()
+    cursor.close()
+
+    if row and row['image']:
+        img_val = row['image']
+        if str(img_val).startswith('data:image'):
+            try:
+                header, encoded = img_val.split(',', 1)
+                mime_type = header.split(';')[0].split(':')[1]
+                data = base64.b64decode(encoded)
+                return send_file(io.BytesIO(data), mimetype=mime_type)
+            except Exception:
+                pass
+        else:
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], str(img_val))
+            if os.path.exists(file_path):
+                return send_file(file_path)
+
+    # صورة بديلة (الشعار) في حال عدم وجود صورة للخبر
+    logo_path = os.path.join(app.config['UPLOAD_FOLDER'], 'logo.png')
+    if os.path.exists(logo_path):
+        return send_file(logo_path, mimetype='image/png')
+    return '', 404
 
 # الصفحة الرئيسية
 @app.route('/')
@@ -258,7 +291,7 @@ def contact_us():
                 <label style="display:block; font-weight:bold; margin-bottom:6px;">البريد الإلكتروني:</label>
                 <input type="email" name="email" required style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
             </div>
-            <div style="margin-bottom: 15px;">
+            <div style="margin-bottom: 20px;">
                 <label style="display:block; font-weight:bold; margin-bottom:6px;">موضوع الرسالة:</label>
                 <input type="text" name="subject" required style="width:100%; padding:10px; border:1px solid #cbd5e1; border-radius:6px; box-sizing:border-box;">
             </div>
