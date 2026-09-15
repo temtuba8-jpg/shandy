@@ -1,6 +1,7 @@
 import os
 import base64
 import io
+import re
 from datetime import datetime, timedelta
 from flask import Flask, render_template, render_template_string, request, redirect, url_for, session, flash, g, Response, send_file
 from werkzeug.utils import secure_filename
@@ -113,6 +114,17 @@ def clean_expired_news():
 def auto_clean():
     clean_expired_news()
 
+# دالة تحويل عنوان الخبر إلى نص مناسب للرابط مثل العربية والجزيرة
+def make_slug(text):
+    if not text:
+        return ""
+    text = re.sub(r'[^\w\s-]', '', str(text)).strip()
+    return re.sub(r'[\s_-]+', '-', text)
+
+@app.template_filter('slugify')
+def slugify_filter(s):
+    return make_slug(s)
+
 # دالة مساعدة لتحديد مصدر الصورة (سواء كانت Base64 أو مسار مجلد)
 @app.template_filter('image_src')
 def image_src_filter(img_val):
@@ -192,9 +204,10 @@ def index():
                            slider_news=slider_news, current_category=category,
                            page=page, total_pages=total_pages)
 
-# صفحة تفاصيل الخبر الكاملة
+# صفحة تفاصيل الخبر الكاملة (تدعم الرابط القديم بالرقم وتدعم الرابط الصديق لمحركات البحث بالعنوان العربي)
 @app.route('/news/<int:news_id>')
-def news_detail(news_id):
+@app.route('/news/<int:news_id>-<slug>')
+def news_detail(news_id, slug=None):
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM news WHERE id = %s;", (news_id,))
@@ -326,7 +339,7 @@ def robots_txt():
 def sitemap_xml():
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute("SELECT id, created_at FROM news ORDER BY id DESC LIMIT 500;")
+    cursor.execute("SELECT id, title, created_at FROM news ORDER BY id DESC LIMIT 500;")
     news_items = cursor.fetchall()
     cursor.close()
 
@@ -343,7 +356,9 @@ def sitemap_xml():
         xml.append(f'<url><loc>{base_url}/?category={cat}</loc><priority>0.8</priority><changefreq>daily</changefreq></url>')
 
     for item in news_items:
-        xml.append(f'<url><loc>{base_url}/news/{item["id"]}</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>')
+        slug = make_slug(item['title'])
+        news_url = f"{base_url}/news/{item['id']}-{slug}" if slug else f"{base_url}/news/{item['id']}"
+        xml.append(f'<url><loc>{news_url}</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>')
 
     xml.append('</urlset>')
     return Response('\n'.join(xml), mimetype='application/xml')
