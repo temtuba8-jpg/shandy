@@ -1,10 +1,20 @@
 {% extends 'base.html' %}
 
-<!-- تخصيص عنوان ووسوم الصفحة لمحركات البحث وشبكات التواصل -->
+<!-- تخصيص عنوان ووسوم الصفحة لمحركات البحث وشبكات التواصل (معاينة احترافية كالقنوات الإخبارية) -->
 {% block title %}{{ news.title }} | صحيفة شندي الإخبارية{% endblock %}
+{% block meta_desc %}{{ news.details[:160] | replace('\n', ' ') | striptags }}{% endblock %}
+{% block canonical_url %}{{ url_for('news_detail', news_id=news.id, slug=news.title|slugify, _external=True) }}{% endblock %}
+
+{% block og_type %}article{% endblock %}
 {% block og_title %}{{ news.title }}{% endblock %}
-{% block og_desc %}{{ news.details[:150] }}...{% endblock %}
+{% block og_desc %}{{ news.details[:160] | replace('\n', ' ') | striptags }}...{% endblock %}
+{% block og_url %}{{ url_for('news_detail', news_id=news.id, slug=news.title|slugify, _external=True) }}{% endblock %}
+{% block og_image %}{{ url_for('serve_news_image', news_id=news.id, _external=True) }}{% endblock %}
+{% block og_image_alt %}{{ news.title }}{% endblock %}
+
 {% block tw_title %}{{ news.title }}{% endblock %}
+{% block tw_desc %}{{ news.details[:160] | replace('\n', ' ') | striptags }}...{% endblock %}
+{% block tw_image %}{{ url_for('serve_news_image', news_id=news.id, _external=True) }}{% endblock %}
 
 {% block content %}
 <!-- 📰 بيانات هيكلية دقيقة للمقال (Schema.org NewsArticle) لأرشفة Google News 📰 -->
@@ -14,12 +24,12 @@
   "@type": "NewsArticle",
   "mainEntityOfPage": {
     "@type": "WebPage",
-    "@id": "{{ request.url }}"
+    "@id": "{{ url_for('news_detail', news_id=news.id, slug=news.title|slugify, _external=True) }}"
   },
-  "headline": "{{ news.title }}",
-  "description": "{{ news.details[:160] | replace('\n', ' ') }}",
+  "headline": {{ news.title | tojson }},
+  "description": {{ (news.details[:160] | replace('\n', ' ') | striptags) | tojson }},
   "image": [
-    "{{ news.image | image_src }}"
+    "{{ url_for('serve_news_image', news_id=news.id, _external=True) }}"
   ],
   "datePublished": "{{ news.created_at }}",
   "dateModified": "{{ news.created_at }}",
@@ -229,7 +239,7 @@
 
     </article>
 
-    <!-- أخبار ذات صلة لتقليل معدل الارتداد (Bounce Rate) -->
+    <!-- أخبار ذات صلة لتقليل معدل الارتداد (Bounce Rate) بالروابط الاحترافية -->
     {% if related %}
     <h3 style="margin-top: 40px; margin-bottom: 20px; color:#0f2c59; border-right: 4px solid var(--primary-red); padding-right: 12px; font-weight:800;">
         أخبار أخرى في قسم {{ news.category }}
@@ -239,11 +249,11 @@
         <div class="news-card">
             <div class="card-body">
                 <h4 style="margin-bottom:12px;">
-                    <a href="/news/{{ item.id }}" style="color:var(--text-dark); text-decoration:none; line-height:1.4;">
+                    <a href="/news/{{ item.id }}-{{ item.title | slugify }}" style="color:var(--text-dark); text-decoration:none; line-height:1.4;">
                         {{ item.title }}
                     </a>
                 </h4>
-                <a href="/news/{{ item.id }}" class="btn-read-more" style="font-size:0.85rem;">
+                <a href="/news/{{ item.id }}-{{ item.title | slugify }}" class="btn-read-more" style="font-size:0.85rem;">
                     قراءة التفاصيل <i class="fas fa-arrow-left"></i>
                 </a>
             </div>
@@ -253,20 +263,28 @@
     {% endif %}
 </div>
 
-<!-- كود تفعيل روابط المشاركة ونسخ الرابط -->
+<!-- كود تفعيل روابط المشاركة مع تضمين العنوان والملخص والرابط الاحترافي -->
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        const currentUrl = encodeURIComponent(window.location.href);
-        const titleText = encodeURIComponent("{{ news.title }} - صحيفة شندي:");
+        const fullShareUrl = "{{ url_for('news_detail', news_id=news.id, slug=news.title|slugify, _external=True) }}";
+        const rawTitle = {{ news.title | tojson }};
+        const rawSummary = {{ (news.details[:120] | replace('\n', ' ') | striptags) | tojson }};
 
-        document.getElementById("waBtn").href = `https://api.whatsapp.com/send?text=${titleText}%20${currentUrl}`;
-        document.getElementById("fbBtn").href = `https://www.facebook.com/sharer/sharer.php?u=${currentUrl}`;
-        document.getElementById("tgBtn").href = `https://t.me/share/url?url=${currentUrl}&text=${titleText}`;
-        document.getElementById("xBtn").href = `https://twitter.com/intent/tweet?url=${currentUrl}&text=${titleText}`;
+        // رسالة منسقة وجذابة مثل كبرى الصحف
+        const messageText = `📰 *${rawTitle}*\n\n${rawSummary}...\n\n🔗 *لقراءة التقرير كاملاً:* `;
+
+        const encodedUrl = encodeURIComponent(fullShareUrl);
+        const encodedMsg = encodeURIComponent(messageText);
+
+        document.getElementById("waBtn").href = `https://api.whatsapp.com/send?text=${encodedMsg}%20${encodedUrl}`;
+        document.getElementById("fbBtn").href = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+        document.getElementById("tgBtn").href = `https://t.me/share/url?url=${encodedUrl}&text=${encodeURIComponent(rawTitle)}`;
+        document.getElementById("xBtn").href = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodeURIComponent(rawTitle)}`;
     });
 
     function copyNewsLink() {
-        navigator.clipboard.writeText(window.location.href).then(() => {
+        const fullShareUrl = "{{ url_for('news_detail', news_id=news.id, slug=news.title|slugify, _external=True) }}";
+        navigator.clipboard.writeText(fullShareUrl).then(() => {
             const alertBox = document.getElementById("copyAlert");
             alertBox.style.display = "block";
             setTimeout(() => {
@@ -275,6 +293,7 @@
         });
     }
 </script>
+
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1632368230954022"
      crossorigin="anonymous"></script>
 {% endblock %}
