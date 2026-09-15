@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>إدارة المشرفين | صحيفة شندي</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Cairo', sans-serif; }
+        body { background: #f8fafc; padding: 30px; }
+        .box { max-width: 600px; margin: auto; background:#fff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        input { width: 100%; padding: 10px; margin: 8px 0 15px; border: 1px solid #ccc; border-radius: 5px; }
+        button { background: #c8102e; color: #fff; border:none; padding:10px 20px; font-weight:bold; cursor:pointer; border-radius:5px; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <a href="/admin">← العودة للوحة التحكم</a>
+        <h2 style="margin-top:15px;">إضافة مدير جديد</h2>
+        <form method="POST">
+            <label>اسم المستخدم للجديد:</label>
+            <input type="text" name="username" required>
+            <label>كلمة المرور:</label>
+            <input type="password" name="password" required>
+            <button type="submit">إضافة المدير</button>
+        </form>
+
+        <h3 style="margin-top:30px;">المدراء الحاليين:</h3>
+        <ul>
+            {% for m in managers %}
+                <li>{{ m.username }} ({{ m.role }})</li>
+            {% endfor %}
+        </ul>
+    </div>
+</body>
+</html>

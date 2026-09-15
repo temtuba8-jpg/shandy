@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>لوحة التحكم ونشر الأخبار | صحيفة شندي</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
+        body { background: #f1f5f9; margin: 0; padding: 25px; }
+        .dashboard-container { max-width: 1250px; margin: auto; }
+        
+        .top-nav { 
+            background: #fff; 
+            padding: 15px 25px; 
+            border-radius: 10px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 25px; 
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            border-top: 4px solid #c8102e;
+        }
+        
+        .card { 
+            background: #fff; 
+            padding: 25px; 
+            border-radius: 10px; 
+            margin-bottom: 25px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+        }
+        
+        .card h3 {
+            margin-top: 0;
+            color: #0f2c59;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+
+        .form-group { margin-bottom: 18px; }
+        label { display: block; font-weight: bold; margin-bottom: 6px; color: #334155; }
+        input[type="text"], select, textarea { 
+            width: 100%; 
+            padding: 12px; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 8px; 
+            font-size: 1rem;
+        }
+        
+        .btn-publish { 
+            background: #c8102e; 
+            color: #fff; 
+            padding: 12px 30px; 
+            border: none; 
+            border-radius: 8px; 
+            font-weight: bold; 
+            font-size: 1.05rem; 
+            cursor: pointer; 
+            transition: background 0.3s;
+        }
+        .btn-publish:hover { background: #900c1e; }
+        
+        .btn-ticker {
+            background: #0f2c59;
+            color: #fff;
+            padding: 10px 24px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-ticker:hover { background: #1e3a8a; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #e2e8f0; padding: 12px; text-align: right; }
+        th { background: #0f2c59; color: #fff; }
+        
+        .alert {
+            background: #dcfce7;
+            color: #166534;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        
+        .badge-btn {
+            background: #0f2c59;
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .badge-btn:hover { background: #1e3a8a; }
+    </style>
+</head>
+<body>
+
+<div class="dashboard-container">
+    <!-- الشريط العلوي -->
+    <div class="top-nav">
+        <div>
+            <h2 style="margin:0; color:#0f2c59;">لوحة تحكم صحيفة شندي</h2>
+            <span style="color:#64748b; font-size:0.9rem;">المشرف المسجل: <strong>{{ session.username }}</strong></span>
+        </div>
+        <div style="display:flex; gap:12px; align-items:center;">
+            <a href="/admin/managers" class="badge-btn"><i class="fas fa-users-cog"></i> المشرفين</a>
+            <a href="/" target="_blank" style="color:#0f2c59; font-weight:bold; text-decoration:none;"><i class="fas fa-globe"></i> زيارة الموقع</a>
+            <a href="/admin/logout" style="color:#c8102e; font-weight:bold; text-decoration:none; margin-right:10px;"><i class="fas fa-sign-out-alt"></i> خروج</a>
+        </div>
+    </div>
+
+    <!-- رسائل التنبيه -->
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert"><i class="fas fa-check-circle"></i> {{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- ⚡ قسم مخصص ومستقل لإدارة الشريط الإخباري (عاجل) ⚡ -->
+    <div class="card" style="border-right: 5px solid #c8102e;">
+        <h3><i class="fas fa-bolt" style="color:#c8102e;"></i> إدارة شريط الأخبار العاجلة (الشريط المتحرك)</h3>
+        <form action="/admin/add-ticker" method="POST" style="display:flex; gap:15px; flex-wrap:wrap; align-items:flex-end;">
+            <div style="flex:2; min-width:300px;">
+                <label>نص الخبر العاجل:</label>
+                <input type="text" name="ticker_text" required placeholder="اكتب خبراً سريعاً للشريط الإخباري...">
+            </div>
+            <div style="flex:1; min-width:200px;">
+                <label>رابط خارجي أو داخلي (اختياري):</label>
+                <input type="text" name="ticker_url" placeholder="مثال: https://... أو اتركه فارغاً">
+            </div>
+            <button type="submit" class="btn-ticker" style="height:48px;"><i class="fas fa-plus"></i> إضافة للشريط</button>
+        </form>
+
+        <!-- قائمة أخبار الشريط الحالي -->
+        <h4 style="margin-top:25px; margin-bottom:10px; color:#334155;">الأخبار المعروضة في الشريط الآن:</h4>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:65%;">نص الخبر</th>
+                    <th>الرابط</th>
+                    <th>إجراء</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for t in ticker_items %}
+                <tr>
+                    <td><strong>{{ t.title }}</strong></td>
+                    <td>{{ t.url if t.url else 'بدون رابط' }}</td>
+                    <td>
+                        <a href="/admin/delete-ticker/{{ t.id }}" onclick="return confirm('حذف هذا الخبر من الشريط؟')" style="color:#c8102e; text-decoration:none; font-weight:bold;"><i class="fas fa-trash"></i> حذف من الشريط</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="3" style="text-align:center; color:#64748b;">لا توجد أخبار مضافة يدوياً في الشريط الإخباري.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- صندوق نشر الأخبار والتقارير العامة -->
+    <div class="card">
+        <h3><i class="fas fa-edit"></i> نشر خبر أو تقرير جديد في الجريدة</h3>
+        <form action="/admin/add-news" method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label>عنوان الخبر:</label>
+                <input type="text" name="title" required placeholder="اكتب عنوان الخبر الرئيسي هنا...">
+            </div>
+
+            <div style="display:flex; gap:20px; flex-wrap:wrap;">
+                <div class="form-group" style="flex:1; min-width:200px;">
+                    <label>قسم الخبر:</label>
+                    <select name="category">
+                        <option value="سياسية">أخبار سياسية</option>
+                        <option value="اجتماعية">أخبار اجتماعية</option>
+                        <option value="ثقافية">أخبار ثقافية وفنية</option>
+                        <option value="ترفيه">منوعات وترفيه</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="flex:1; min-width:180px;">
+                    <label>لون خط العنوان:</label>
+                    <input type="color" name="color" value="#1e293b" style="height:48px; padding:2px; cursor:pointer;">
+                </div>
+
+                <div class="form-group" style="flex:1.5; min-width:240px;">
+                    <label>صورة الخبر:</label>
+                    <input type="file" name="image" accept="image/*" required style="padding:8px;">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>تفاصيل الخبر الكاملة:</label>
+                <textarea name="details" rows="6" required placeholder="اكتب نص الخبر والتقرير بالتفصيل هنا..."></textarea>
+            </div>
+
+            <div style="margin-bottom:20px; background:#f8fafc; padding:15px; border-radius:8px;">
+                <label style="cursor:pointer; display:flex; align-items:center; gap:8px;">
+                    <input type="checkbox" name="in_slider" value="1" style="width:18px; height:18px;">
+                    <strong>وضعه في سلايدر الصور العلوي (خبر رئيسي مميز)</strong>
+                </label>
+            </div>
+
+            <button type="submit" class="btn-publish"><i class="fas fa-paper-plane"></i> نشر الخبر فوراً</button>
+        </form>
+    </div>
+
+    <!-- جدول الأخبار المنشورة -->
+    <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+            <h3><i class="fas fa-list"></i> الأخبار المنشورة</h3>
+            <form method="GET" style="display:flex; gap:10px;">
+                <input type="text" name="search" value="{{ search }}" placeholder="بحث بعنوان الخبر..." style="width:250px; padding:8px;">
+                <button type="submit" style="background:#0f2c59; color:#fff; border:none; padding:8px 18px; border-radius:6px; font-weight:bold; cursor:pointer;">بحث</button>
+            </form>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>الصورة</th>
+                    <th>العنوان</th>
+                    <th>القسم</th>
+                    <th>تاريخ النشر</th>
+                    <th>العمليات</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in news_list %}
+                <tr>
+                    <td><img src="{{ url_for('static', filename='uploads/' + item.image) if item.image else '' }}" width="50" height="40" style="object-fit:cover; border-radius:4px;"></td>
+                    <td style="color:{{ item.color }}; font-weight:bold;">{{ item.title }}</td>
+                    <td>{{ item.category }}</td>
+                    <td>{{ item.created_at }}</td>
+                    <td>
+                        <a href="/admin/delete/{{ item.id }}" onclick="return confirm('هل أنت متأكد من حذف هذا الخبر؟')" style="color:#c8102e; font-weight:bold; text-decoration:none;"><i class="fas fa-trash"></i> حذف</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="5" style="text-align:center; padding:20px; color:#64748b;">لا توجد أخبار منشورة حتى الآن.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        {% if total_pages > 1 %}
+        <div style="display:flex; justify-content:center; gap:8px; margin-top:25px;">
+            {% for p in range(1, total_pages + 1) %}
+                <a href="?page={{ p }}&search={{ search }}" style="padding:6px 14px; background:{% if p==page %}#c8102e;color:#fff;{% else %}#fff;{% endif %} text-decoration:none; border:1px solid #cbd5e1; border-radius:6px; font-weight:bold;">{{ p }}</a>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+</body>
+</html>

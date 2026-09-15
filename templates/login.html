@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>تسجيل دخول الإدارة | صحيفة شندي</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
+        body { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            background: linear-gradient(135deg, #0f2c59, #08162b); 
+            margin: 0; 
+        }
+        .login-card { 
+            background: #fff; 
+            padding: 40px; 
+            border-radius: 12px; 
+            width: 100%;
+            max-width: 400px; 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.4); 
+            border-top: 5px solid #c8102e;
+        }
+        .login-card h2 { 
+            text-align: center; 
+            color: #0f2c59; 
+            margin-bottom: 5px;
+            font-weight: 900;
+        }
+        .login-card p {
+            text-align: center;
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-bottom: 25px;
+        }
+        label { 
+            display: block; 
+            font-weight: bold; 
+            margin-bottom: 6px; 
+            color: #334155; 
+        }
+        input { 
+            width: 100%; 
+            padding: 12px; 
+            margin-bottom: 18px; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 8px; 
+            font-size: 1rem; 
+        }
+        input:focus { 
+            border-color: #c8102e; 
+            outline: none; 
+        }
+        button { 
+            width: 100%; 
+            background: #c8102e; 
+            color: #fff; 
+            border: none; 
+            padding: 12px; 
+            font-weight: bold; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            font-size: 1.1rem; 
+            transition: background 0.3s;
+        }
+        button:hover { 
+            background: #900c1e; 
+        }
+        .alert {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+            padding: 10px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .back-home {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #64748b;
+            text-decoration: none;
+            font-size: 0.85rem;
+        }
+        .back-home:hover { color: #c8102e; }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <h2>صحيفة شندي</h2>
+        <p>بوابة تسجيل دخول المحررين والإدارة</p>
+
+        {% with messages = get_flashed_messages() %}
+          {% if messages %}
+            {% for message in messages %}
+              <div class="alert"><i class="fas fa-exclamation-circle"></i> {{ message }}</div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <form action="/admin/login" method="POST">
+            <div>
+                <label><i class="fas fa-user"></i> اسم المستخدم:</label>
+                <input type="text" name="username" placeholder="اسم المستخدم" required>
+            </div>
+            <div>
+                <label><i class="fas fa-lock"></i> كلمة المرور:</label>
+                <input type="password" name="password" placeholder="كلمة المرور" required>
+            </div>
+            <button type="submit"><i class="fas fa-sign-in-alt"></i> تسجيل الدخول</button>
+        </form>
+
+        <a href="/" class="back-home"><i class="fas fa-home"></i> العودة للموقع الرئيسي</a>
+    </div>
+</body>
+</html>

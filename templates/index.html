@@ -1,0 +1,337 @@
+{% extends 'base.html' %}
+
+{% block title %}صحيفة شندي الإخبارية | أخبار نهر النيل والسودان لحظة بلحظة{% endblock %}
+
+{% block content %}
+<style>
+    /* الشريط الإخباري */
+    .ticker-wrapper {
+        display: flex;
+        background: #1e293b;
+        color: #fff;
+        align-items: center;
+        border-bottom: 2px solid var(--primary-red);
+        overflow: hidden;
+        height: 48px;
+    }
+    .ticker-title {
+        background: var(--primary-red);
+        color: #fff;
+        padding: 0 20px;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        font-weight: bold;
+        font-size: 0.95rem;
+        white-space: nowrap;
+        z-index: 5;
+        box-shadow: -4px 0 10px rgba(0,0,0,0.3);
+    }
+    .ticker-content {
+        flex-grow: 1;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+    .ticker-scroll {
+        display: inline-block;
+        white-space: nowrap;
+        padding-right: 100%;
+        animation: marquee 65s linear infinite;
+    }
+    .ticker-scroll:hover {
+        animation-play-state: paused;
+    }
+    @keyframes marquee {
+        0% { transform: translate3d(0, 0, 0); }
+        100% { transform: translate3d(100%, 0, 0); }
+    }
+    .ticker-item {
+        display: inline-flex;
+        align-items: center;
+        color: #fff;
+        text-decoration: none;
+        margin: 0 15px;
+        font-size: 0.95rem;
+        transition: color 0.2s ease;
+    }
+    .ticker-item:hover {
+        color: #fca5a5;
+    }
+    .ticker-logo {
+        color: var(--primary-red);
+        margin-right: 12px;
+        font-size: 1.1rem;
+    }
+
+    /* سلايدر أفقي بانزلاق يمين/يسار سلس وبكامل الصورة بدون قص */
+    .slider-viewport {
+        position: relative;
+        width: 100%;
+        height: 480px;
+        background: #08111d;
+        overflow: hidden;
+        margin-bottom: 25px;
+    }
+
+    .slide {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        transform: translateX(100%);
+        transition: transform 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #060d17;
+    }
+
+    .slide.active {
+        transform: translateX(0);
+        z-index: 2;
+    }
+
+    .slide.prev {
+        transform: translateX(-100%);
+        z-index: 1;
+    }
+
+    .slide img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        background: radial-gradient(circle, #102138 0%, #060d17 100%);
+    }
+
+    .slide-caption {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        left: 0;
+        background: linear-gradient(to top, rgba(6, 13, 23, 0.95) 0%, rgba(6, 13, 23, 0.7) 60%, transparent 100%);
+        padding: 40px 5% 20px;
+        color: #fff;
+        z-index: 3;
+    }
+
+    .slider-arrow {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 45px;
+        height: 45px;
+        background: rgba(200, 16, 46, 0.85);
+        color: #fff;
+        border: none;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        cursor: pointer;
+        z-index: 10;
+        transition: background 0.3s, transform 0.2s;
+    }
+    .slider-arrow:hover {
+        background: #900c1e;
+        transform: translateY(-50%) scale(1.1);
+    }
+    .slider-arrow.prev-btn { right: 20px; }
+    .slider-arrow.next-btn { left: 20px; }
+
+    /* حاويات إعلانات قوقل أدسنس المتجاوبة داخل الصفحة */
+    .ads-slot {
+        background: #f8fafc;
+        border: 1px dashed #cbd5e1;
+        border-radius: 10px;
+        text-align: center;
+        padding: 12px;
+        margin: 25px 0;
+        color: #94a3b8;
+        font-size: 0.85rem;
+    }
+    .ads-slot::before {
+        content: 'إعلان ممول / Google AdSense';
+        display: block;
+        font-size: 0.72rem;
+        margin-bottom: 5px;
+        color: #94a3b8;
+    }
+
+    /* إعلان مدمج وسط شبكة الأخبار (In-Feed Native Ad) */
+    .in-feed-ad-card {
+        grid-column: 1 / -1;
+        background: #f8fafc;
+        border: 1px dashed #c8102e;
+        border-radius: 12px;
+        padding: 20px;
+        text-align: center;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        min-height: 120px;
+    }
+</style>
+
+<!-- شريط الأخبار العاجلة -->
+{% if breaking_news %}
+<div class="ticker-wrapper">
+    <div class="ticker-title"><i class="fas fa-bolt"></i> عاجل شندي</div>
+    <div class="ticker-content">
+        <div class="ticker-scroll">
+            {% for item in breaking_news %}
+                <a href="{% if item.url %}{{ item.url }}{% else %}/news/{{ item.id }}{% endif %}" class="ticker-item">
+                    {{ item.title }}
+                </a>
+                <span class="ticker-logo"><i class="fas fa-water"></i> شندي</span>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- السلايدر المتحرك بحركة أفقية انسيابية مع دعم الصور السحابية الدائمة -->
+{% if slider_news %}
+<div class="slider-viewport">
+    <button class="slider-arrow prev-btn" onclick="moveSlide(-1)" aria-label="السابق"><i class="fas fa-chevron-right"></i></button>
+    <button class="slider-arrow next-btn" onclick="moveSlide(1)" aria-label="التالي"><i class="fas fa-chevron-left"></i></button>
+
+    {% for slide in slider_news %}
+    <div class="slide {% if loop.first %}active{% endif %}">
+        <img src="{{ slide.image | image_src }}" alt="{{ slide.title }}">
+        <div class="slide-caption">
+            <span style="background:var(--primary-red); padding:4px 12px; border-radius:4px; font-size:0.85rem; font-weight:bold;">خبر رئيسي</span>
+            <h2 style="font-size:1.8rem; margin-top:8px; font-weight:800;">
+                <a href="/news/{{ slide.id }}" style="color:#fff; text-decoration:none;">{{ slide.title }}</a>
+            </h2>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<div class="container">
+
+    <!-- مساحة إعلانية متجاوبة (Banner Ad) أسفل السلايدر مباشرة -->
+    <div class="ads-slot">
+        <span>مساحة إعلانية متجاوبة - Google AdSense Unit</span>
+    </div>
+
+    <!-- عنوان القسم الحالي لتهيئة محركات البحث SEO -->
+    <h1 style="border-right: 5px solid var(--primary-red); padding-right: 12px; margin: 20px 0 25px; font-size: 1.7rem; font-weight: 900; color: #0f2c59;">
+        {% if current_category %} قسم أخبار {{ current_category }} - صحيفة شندي {% else %} آخر أخبار وتقارير ولاية نهر النيل {% endif %}
+    </h1>
+
+    <!-- شبكة الأخبار مع دعم العرض السحابي للصور وفلترة الإعلانات -->
+    <div class="news-grid">
+        {% for news in news_list %}
+        
+        <article class="news-card">
+            <div class="card-img-wrapper">
+                <img src="{{ news.image | image_src }}" 
+                     alt="صورة خبر: {{ news.title }}" 
+                     loading="lazy">
+                <div class="card-category-badge">{{ news.category }}</div>
+            </div>
+            <div class="card-body">
+                <h3 class="card-title" style="color: {{ news.color }};">
+                    <a href="/news/{{ news.id }}" style="color: inherit; text-decoration: none;">{{ news.title }}</a>
+                </h3>
+                <p class="card-summary">
+                    {{ news.details }}
+                </p>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 10px; border-top: 1px solid #f1f5f9;">
+                    <span style="font-size: 0.8rem; color: #94a3b8;"><i class="far fa-clock"></i> {{ news.created_at }}</span>
+                    <a href="/news/{{ news.id }}" class="btn-read-more">
+                        اقرأ التفاصيل <i class="fas fa-arrow-left"></i>
+                    </a>
+                </div>
+            </div>
+        </article>
+
+        <!-- وحدة إعلانية وسطية مدمجة بعد الخبر السادس -->
+        {% if loop.index == 6 %}
+        <div class="in-feed-ad-card">
+            <span style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 5px;">إعلان مخصص من شبكة Google</span>
+            <div style="color: #64748b; font-weight: bold; font-size: 0.95rem;">
+                [مساحة إعلان مدمج تلقائي In-Feed Native Ad Unit]
+            </div>
+        </div>
+        {% endif %}
+
+        {% else %}
+        <div style="grid-column: 1 / -1; text-align:center; padding: 40px; background:#fff; border-radius:10px;">
+            <h3>لا توجد أخبار منشورة في هذا القسم حتى الآن.</h3>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- مساحة إعلانية سفلية قبل ترقيم الصفحات -->
+    <div class="ads-slot">
+        <span>مساحة إعلانية سفلية - Google Responsive Ad Unit</span>
+    </div>
+
+    <!-- ترقيم الصفحات -->
+    {% if total_pages > 1 %}
+    <div class="pagination">
+        {% if page > 1 %}
+            <a href="?page={{ page - 1 }}{% if current_category %}&category={{ current_category }}{% endif %}" class="page-btn">السابق</a>
+        {% endif %}
+        
+        {% for p in range(1, total_pages + 1) %}
+            <a href="?page={{ p }}{% if current_category %}&category={{ current_category }}{% endif %}" class="page-btn {% if p == page %}active{% endif %}">{{ p }}</a>
+        {% endfor %}
+
+        {% if page < total_pages %}
+            <a href="?page={{ page + 1 }}{% if current_category %}&category={{ current_category }}{% endif %}" class="page-btn">التالي</a>
+        {% endif %}
+    </div>
+    {% endif %}
+
+</div>
+
+<script>
+    const slides = document.querySelectorAll('.slider-viewport .slide');
+    let currentIndex = 0;
+    let slideInterval;
+
+    function showSlide(nextIndex) {
+        if (slides.length <= 1) return;
+
+        slides.forEach((slide, idx) => {
+            slide.classList.remove('active', 'prev');
+            if (idx === currentIndex) {
+                slide.classList.add('prev');
+            }
+        });
+
+        slides[nextIndex].classList.add('active');
+        currentIndex = nextIndex;
+    }
+
+    function moveSlide(direction) {
+        let nextIndex = currentIndex + direction;
+        if (nextIndex >= slides.length) nextIndex = 0;
+        if (nextIndex < 0) nextIndex = slides.length - 1;
+        showSlide(nextIndex);
+        resetTimer();
+    }
+
+    function startTimer() {
+        if (slides.length > 1) {
+            slideInterval = setInterval(() => {
+                moveSlide(1);
+            }, 3000);
+        }
+    }
+
+    function resetTimer() {
+        clearInterval(slideInterval);
+        startTimer();
+    }
+
+    startTimer();
+</script>
+{% endblock %}
