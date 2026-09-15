@@ -6,30 +6,31 @@
     <title>{% block title %}صحيفة شندي الإخبارية | نبض نهر النيل وعروس الشمال{% endblock %}</title>
 
     <!-- 🌐 وسوم Google SEO الأساسية للظهور الفوري في البحث 🌐 -->
-    <meta name="description" content="صحيفة شندي الإخبارية - الموقع الإخباري الرائد لتغطية أحداث مدينة شندي وولاية نهر النيل لحظة بلحظة: سياسة، مجتمع، ثقافة، فنون، ورياضة.">
+    <meta name="description" content="{% block meta_desc %}صحيفة شندي الإخبارية - الموقع الإخباري الرائد لتغطية أحداث مدينة شندي وولاية نهر النيل لحظة بلحظة: سياسة، مجتمع، ثقافة، فنون، ورياضة.{% endblock %}">
     <meta name="keywords" content="صحيفة شندي, جريدة شندي, اخبار شندي, شندي اليوم, ولاية نهر النيل, اخبار السودان, نهر النيل, عطبرة, الدامر, بربر, المتمة, ريفي ودحامد">
     <meta name="author" content="هيئة تحرير صحيفة شندي">
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
-    <link rel="canonical" href="{{ request.base_url }}">
+    <link rel="canonical" href="{% block canonical_url %}{{ request.base_url }}{% endblock %}">
 
     <!-- أيقونة الموقع (Favicon) لقوقل والمتصفحات -->
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='uploads/logo.png') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='uploads/logo.png') }}">
 
-    <!-- وسوم المعاينة لشبكات التواصل (Open Graph / Facebook / WhatsApp) -->
+    <!-- 🔗 وسوم المعاينة الديناميكية لشبكات التواصل (Open Graph / Facebook / WhatsApp) 🔗 -->
     <meta property="og:locale" content="ar_AR">
-    <meta property="og:type" content="website">
+    <meta property="og:type" content="{% block og_type %}website{% endblock %}">
     <meta property="og:site_name" content="صحيفة شندي الإخبارية">
     <meta property="og:title" content="{% block og_title %}صحيفة شندي الإخبارية | نبض نهر النيل{% endblock %}">
     <meta property="og:description" content="{% block og_desc %}المصدر الأول لتغطية أخبار مدينة شندي وولاية نهر النيل على مدار الساعة.{% endblock %}">
-    <meta property="og:url" content="{{ request.base_url }}">
-    <meta property="og:image" content="{{ url_for('static', filename='uploads/logo.png', _external=True) }}">
+    <meta property="og:url" content="{% block og_url %}{{ request.base_url }}{% endblock %}">
+    <meta property="og:image" content="{% block og_image %}{{ url_for('static', filename='uploads/logo.png', _external=True) }}{% endblock %}">
+    <meta property="og:image:alt" content="{% block og_image_alt %}صحيفة شندي الإخبارية{% endblock %}">
 
-    <!-- بطاقات Twitter / X -->
+    <!-- 🐦 بطاقات Twitter / X 🐦 -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="{% block tw_title %}صحيفة شندي الإخبارية{% endblock %}">
-    <meta name="twitter:description" content="أحدث الأخبار والتقارير من شندي ونهر النيل.">
-    <meta name="twitter:image" content="{{ url_for('static', filename='uploads/logo.png', _external=True) }}">
+    <meta name="twitter:description" content="{% block tw_desc %}أحدث الأخبار والتقارير من شندي ونهر النيل.{% endblock %}">
+    <meta name="twitter:image" content="{% block tw_image %}{{ url_for('static', filename='uploads/logo.png', _external=True) }}{% endblock %}">
 
     <!-- 📊 البيانات الهيكلية لمحرك بحث قوقل (Schema.org / JSON-LD) 📊 -->
     <script type="application/ld+json">
@@ -59,11 +60,6 @@
       }
     }
     </script>
-
-    <!-- 💰 مكان كود تفعيل إعلانات قوقل أدسنس التلقائية (ضع معرف حسابك هنا) 💰 -->
-    <!--
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script>
-    -->
 
     <!-- استدعاء خط القاهرة وأيقونات FontAwesome -->
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
@@ -567,7 +563,6 @@
     <!-- 📢 مساحة إعلانية تحت الهيدر مطابقة لمواصفات Google AdSense 📢 -->
     <div class="ads-container">
         <div class="ad-banner-box">
-            <!-- كود الوحدة الإعلانية لقوقل أدسنس (ضع كود الوحدة هنا بعد التفعيل) -->
             <span>إعلان متجاوب (728x90) / Google AdSense Banner</span>
         </div>
     </div>
@@ -628,7 +623,6 @@
     </div>
 
     <script>
-        // حفظ قرار الموافقة على الكوكيز في المتصفح
         function acceptCookies() {
             localStorage.setItem("shendiCookiesConsent", "accepted");
             document.getElementById("cookieNotice").style.display = "none";
