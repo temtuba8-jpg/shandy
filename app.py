@@ -25,59 +25,73 @@ def get_db():
 def close_db(error):
     db = g.pop('db', None)
     if db is not None:
-        db.close()
+        try:
+            if error:
+                db.rollback()
+            db.close()
+        except Exception:
+            pass
 
 def init_db():
-    conn = psycopg2.connect(DATABASE_URL)
-    cursor = conn.cursor()
-    
-    # جدول المشرفين
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS managers (
-            id SERIAL PRIMARY KEY,
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            role TEXT DEFAULT 'admin'
-        );
-    ''')
-    
-    # جدول الأخبار - عمود image يحفظ مسار الصورة أو كود Base64 السحابي الدائم
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS news (
-            id SERIAL PRIMARY KEY,
-            title TEXT NOT NULL,
-            details TEXT NOT NULL,
-            category TEXT NOT NULL,
-            image TEXT,
-            color TEXT DEFAULT '#1f2937',
-            is_breaking INTEGER DEFAULT 0,
-            in_slider INTEGER DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-    ''')
-    
-    # جدول الشريط الإخباري العاجل
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS ticker_news (
-            id SERIAL PRIMARY KEY,
-            title TEXT NOT NULL,
-            url TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-        );
-    ''')
+    try:
+        conn = psycopg2.connect(DATABASE_URL)
+        cursor = conn.cursor()
+        
+        # جدول المشرفين
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS managers (
+                id SERIAL PRIMARY KEY,
+                username TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL,
+                role TEXT DEFAULT 'admin'
+            );
+        ''')
+        
+        # جدول الأخبار - عمود image يحفظ مسار الصورة أو كود Base64 السحابي الدائم
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS news (
+                id SERIAL PRIMARY KEY,
+                title TEXT NOT NULL,
+                details TEXT NOT NULL,
+                category TEXT NOT NULL,
+                image TEXT,
+                color TEXT DEFAULT '#1f2937',
+                is_breaking INTEGER DEFAULT 0,
+                in_slider INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        ''')
+        
+        # جدول الشريط الإخباري العاجل
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS ticker_news (
+                id SERIAL PRIMARY KEY,
+                title TEXT NOT NULL,
+                url TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        ''')
 
-    # حساب المدير الافتراضي
-    cursor.execute("SELECT * FROM managers WHERE username = %s;", ('admin',))
-    if not cursor.fetchone():
-        cursor.execute(
-            "INSERT INTO managers (username, password, role) VALUES (%s, %s, %s);",
-            ('admin', generate_password_hash('admin123'), 'super_admin')
-        )
-    conn.commit()
-    cursor.close()
-    conn.close()
+        # حساب المدير الافتراضي
+        cursor.execute("SELECT * FROM managers WHERE username = %s;", ('admin',))
+        if not cursor.fetchone():
+            cursor.execute(
+                "INSERT INTO managers (username, password, role) VALUES (%s, %s, %s);",
+                ('admin', generate_password_hash('admin123'), 'super_admin')
+            )
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        print("Database Init Alert:", e)
 
-# الحذف التلقائي بعد 30 يوماً
+# تشغيل إنشاء الجداول فوراً عند تحميل التطبيق ليعمل مع Gunicorn على Render
+try:
+    init_db()
+except Exception as e:
+    print("Init DB error:", e)
+
+# الحذف التلقائي بعد 30 يوماً مع معالجة التراجع عند الخطأ لمنع تعليق المعاملة
 def clean_expired_news():
     try:
         conn = get_db()
@@ -88,7 +102,11 @@ def clean_expired_news():
         conn.commit()
         cursor.close()
     except Exception:
-        pass
+        if 'db' in g:
+            try:
+                g.db.rollback()
+            except Exception:
+                pass
 
 @app.before_request
 def auto_clean():
@@ -99,11 +117,9 @@ def auto_clean():
 def image_src_filter(img_val):
     if not img_val:
         return url_for('static', filename='uploads/logo.png')
-    # إذا كانت الصورة محفوظة كـ Base64 سحابي دائم
-    if img_val.startswith('data:image'):
+    if str(img_val).startswith('data:image'):
         return img_val
-    # إذا كانت اسم ملف في مجلد uploads
-    return url_for('static', filename='uploads/' + img_val)
+    return url_for('static', filename='uploads/' + str(img_val))
 
 # الصفحة الرئيسية
 @app.route('/')
@@ -172,19 +188,11 @@ def privacy_policy():
     <div class="container" style="max-width: 900px; margin: 40px auto; background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); line-height: 2;">
         <h1 style="color: #0f2c59; border-right: 5px solid var(--primary-red); padding-right: 15px; margin-bottom: 25px;">سياسة الخصوصية وملفات تعريف الارتباط</h1>
         <p>أهلاً بكم في <strong>صحيفة شندي الإخبارية</strong>. تمثل خصوصية زوارنا أهمية بالغة لنا. توضح هذه الوثيقة أنواع المعلومات الشخصية التي نجمعها وكيفية استخدامها لحماية بياناتكم والامتثال لسياسات شبكة Google الإعلانية.</p>
-        
         <h3 style="color: var(--primary-red); margin-top: 25px;">1. ملفات السجل (Log Files)</h3>
-        <p>مثل معظم المواقع الإخبارية، نستخدم ملفات السجل لتسجيل معلومات تشمل عناوين بروتوكول الإنترنت (IP)، نوع المتصفح، مزود خدمة الإنترنت (ISP)، الطوابع الزمنية، وصفحات الإحالة/الخروج، وذلك لتحليل الاتجاهات وإدارة الموقع.</p>
-
+        <p>مثل معظم المواقع الإخبارية، نستخدم ملفات السجل لتسجيل معلومات تشمل عناوين بروتوكول الإنترنت (IP)، نوع المتصفح، ومزود الخدمة.</p>
         <h3 style="color: var(--primary-red); margin-top: 25px;">2. ملفات تعريف الارتباط وشبكة Google AdSense</h3>
         <p>نحن نستخدم ملفات تعريف الارتباط (Cookies) لتخزين تفضيلات الزوار. تستخدم شركة Google بصفتها مورداً خارجياً ملفات تعريف الارتباط لعرض الإعلانات على موقعنا وفقاً لاهتمامات المستخدمين عبر تقنية ملف تعريف الارتباط DART التابع لـ Google.</p>
         <p>يمكن للمستخدمين إلغاء استخدام ملف تعريف الارتباط DART عبر زيارة سياسة الخصوصية الخاصة بإعلانات Google وشبكة المحتوى على الرابط الرسمي لشركة Google.</p>
-
-        <h3 style="color: var(--primary-red); margin-top: 25px;">3. شركاء الإعلانات الخارجيين</h3>
-        <p>قد يستخدم خوادم الإعلانات التابعة لجهات خارجية تقنيات ترسل الإعلانات والروابط مباشرة إلى متصفحك. وتستخدم هذه الشركات ملفات تعريف الارتباط لقياس فاعلية حملاتها وتخصيص المحتوى الإعلاني.</p>
-
-        <h3 style="color: var(--primary-red); margin-top: 25px;">4. موافقة المستخدم</h3>
-        <p>باستخدامك لموقع صحيفة شندي الإخبارية، فإنك توافق بموجب هذا على سياسة الخصوصية الخاصة بنا وشروطها المعتمدة.</p>
     </div>
     {% endblock %}
     """
@@ -198,16 +206,9 @@ def terms_of_service():
     {% block content %}
     <div class="container" style="max-width: 900px; margin: 40px auto; background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); line-height: 2;">
         <h1 style="color: #0f2c59; border-right: 5px solid var(--primary-red); padding-right: 15px; margin-bottom: 25px;">شروط الاستخدام واتفاقية النشر</h1>
-        <p>مرحباً بكم في <strong>صحيفة شندي الإخبارية</strong>. يحكم استخدامكم لهذا الموقع الشروط والأحكام التالية:</p>
-        
+        <p>مرحباً بكم في <strong>صحيفة شندي الإخبارية</strong>. يحكم استخدامكم لهذا الموقع الشروط والأحكام المعتمدة.</p>
         <h3 style="color: var(--primary-red); margin-top: 25px;">1. حقوق الملكية الفكرية</h3>
         <p>جميع المواد المنشورة من نصوص وتقارير وصور وفيديوهات هي حقوق محفوظة لصحيفة شندي الإخبارية، ويُسمح بالاقتباس الصحفي المعتدل بشرط الإشارة المباشرة والصريحة للمصدر مع وضع الرابط الأصلي للخبر.</p>
-
-        <h3 style="color: var(--primary-red); margin-top: 25px;">2. حدود المسؤولية والمصداقية</h3>
-        <p>تسعى هيئة التحرير إلى تحري الدقة والمصداقية والنزاهة في نقل الأخبار الميدانية من مدينة شندي وولاية نهر النيل والسودان. ولا نتحمل مسؤولية أي تعليقات أو آراء يعبر عنها كتاب المقالات أو القراء في مساحات التفاعل.</p>
-
-        <h3 style="color: var(--primary-red); margin-top: 25px;">3. الاستخدام المشروع</h3>
-        <p>يُحظر استخدام الموقع بأي طريقة من شأنها إلحاق الضرر بالخادم أو التأثير على وصول المستخدمين أو محاولة اختراق أنظمة الموقع، ويُعرض مرتكبها للمساءلة القانونية.</p>
     </div>
     {% endblock %}
     """
@@ -222,17 +223,8 @@ def about_us():
     <div class="container" style="max-width: 900px; margin: 40px auto; background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); line-height: 2;">
         <h1 style="color: #0f2c59; border-right: 5px solid var(--primary-red); padding-right: 15px; margin-bottom: 25px;">من نحن - صحيفة شندي الإخبارية</h1>
         <p><strong>صحيفة شندي الإخبارية</strong> هي منصة إعلامية رقمية مستقلة وشاملة، انطلقت لتكون صوتاً حراً ومعبراً عن مدينة شندي وولاية نهر النيل وعموم السودان، تنقل الخبر بمهنية، دقة، وموضوعية غير منحازة.</p>
-        
         <h3 style="color: var(--primary-red); margin-top: 25px;">رؤيتنا الإعلامية</h3>
         <p>أن نكون المصدر الإخباري الأول والموثوق الذي يربط أبناء شندي وولاية نهر النيل في الداخل والمهاجر بأرض الوطن، وتقديم محتوى صحفي يرتقي بثقافة وقضايا المجتمع.</p>
-
-        <h3 style="color: var(--primary-red); margin-top: 25px;">مجالات التغطية</h3>
-        <ul>
-            <li>الأخبار السياسية وتحليلات المشهد العام في السودان.</li>
-            <li>الأخبار الاجتماعية وقضايا التنمية والخدمات في محليات نهر النيل (شندي، المتمة، الدامر، عطبرة، بربر، وريفي ودحامد).</li>
-            <li>الملف الثقافي والفني والتراثي العريق لمنطقة دار جعل وحضارة مروي.</li>
-            <li>المنوعات والتغطيات الميدانية والرياضية المستمرة.</li>
-        </ul>
     </div>
     {% endblock %}
     """
@@ -250,8 +242,6 @@ def contact_us():
     {% block content %}
     <div class="container" style="max-width: 800px; margin: 40px auto; background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
         <h1 style="color: #0f2c59; border-right: 5px solid var(--primary-red); padding-right: 15px; margin-bottom: 20px;">اتصل بهيئة التحرير</h1>
-        <p style="color: #64748b; margin-bottom: 25px;">نرحب بمقترحاتكم، استفساراتكم، ومشاركاتكم الإخبارية عبر النموذج التالي أو وسائل التواصل الرسمية.</p>
-
         {% with messages = get_flashed_messages() %}
           {% if messages %}
             {% for msg in messages %}
@@ -259,7 +249,6 @@ def contact_us():
             {% endfor %}
           {% endif %}
         {% endwith %}
-
         <form method="POST">
             <div style="margin-bottom: 15px;">
                 <label style="display:block; font-weight:bold; margin-bottom:6px;">الاسم الكامل:</label>
@@ -283,10 +272,6 @@ def contact_us():
     {% endblock %}
     """
     return render_template_string(html_content)
-
-# ==============================================================================
-# ملفات التحقق والأرشفة (ads.txt, sitemap.xml, robots.txt)
-# ==============================================================================
 
 @app.route('/ads.txt')
 def ads_txt():
@@ -315,8 +300,6 @@ def sitemap_xml():
     base_url = request.url_root.rstrip('/')
     xml = ['<?xml version="1.0" encoding="UTF-8"?>']
     xml.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
-
-    # الصفحات الثابتة
     xml.append(f'<url><loc>{base_url}/</loc><priority>1.0</priority><changefreq>always</changefreq></url>')
     xml.append(f'<url><loc>{base_url}/about-us</loc><priority>0.5</priority><changefreq>monthly</changefreq></url>')
     xml.append(f'<url><loc>{base_url}/privacy-policy</loc><priority>0.5</priority><changefreq>monthly</changefreq></url>')
@@ -421,7 +404,7 @@ def delete_ticker(ticker_id):
     flash('تم حذف الخبر من الشريط الإخباري بنجاح')
     return redirect(url_for('admin_dashboard'))
 
-# 🚀 إضافة خبر مع الحفظ السحابي الدائم للصورة 🚀
+# إضافة خبر مع الحفظ السحابي الدائم للصورة
 @app.route('/admin/add-news', methods=['POST'])
 def add_news():
     if not session.get('logged_in'):
@@ -439,11 +422,9 @@ def add_news():
         file = request.files['image']
         if file.filename != '':
             filename = secure_filename(file.filename)
-            # 1. حفظ في المجلد
             local_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(local_path)
             
-            # 2. تحويل الصورة إلى Base64 وحفظها داخل قاعدة البيانات السحابية لحمايتها من المسح
             with open(local_path, "rb") as image_file:
                 encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
                 mime_type = file.content_type if file.content_type else 'image/jpeg'
