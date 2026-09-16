@@ -120,10 +120,19 @@
     <div class="top-nav">
         <div>
             <h2 style="margin:0; color:#0f2c59;">لوحة تحكم صحيفة شندي</h2>
-            <span style="color:#64748b; font-size:0.9rem;">المشرف المسجل: <strong>{{ session.username }}</strong></span>
+            <span style="color:#64748b; font-size:0.9rem;">
+                المشرف المسجل: <strong>{{ session.username }}</strong>
+                {% if session.role == 'super_admin' %}
+                <span style="background:#fef3c7; color:#92400e; padding:2px 8px; border-radius:4px; font-size:0.75rem; margin-right:5px; font-weight:bold;">مدير عام</span>
+                {% endif %}
+            </span>
         </div>
         <div style="display:flex; gap:12px; align-items:center;">
+            <!-- لا يظهر هذا الزر إلا للمدير العام فقط -->
+            {% if session.role == 'super_admin' %}
             <a href="/admin/managers" class="badge-btn"><i class="fas fa-users-cog"></i> إدارة المشرفين ومتابعتهم</a>
+            {% endif %}
+
             <a href="/" target="_blank" style="color:#0f2c59; font-weight:bold; text-decoration:none;"><i class="fas fa-globe"></i> زيارة الموقع</a>
             <a href="/admin/logout" style="color:#c8102e; font-weight:bold; text-decoration:none; margin-right:10px;"><i class="fas fa-sign-out-alt"></i> خروج</a>
         </div>
