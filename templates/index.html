@@ -1,6 +1,144 @@
 {% extends 'base.html' %}
 
-{% block title %}صحيفة شندي الإخبارية | أخبار نهر النيل والسودان لحظة بلحظة{% endblock %}
+{% block title %}صحيفة شندي الإخبارية | أخبار نهر النيل وريفي ود حامد لحظة بلحظة{% endblock %}
+
+<!-- 🌧️☀️ بطاقة الطقس الحية تظهر شمال الشعار في الهيدر 🌧️☀️ -->
+{% block header_weather %}
+<style>
+    /* بطاقة الطقس داخل الهيدر (شمال الشعار) */
+    .header-weather-card {
+        position: relative;
+        overflow: hidden;
+        border-radius: 12px;
+        padding: 8px 16px;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        min-width: 290px;
+        max-width: 360px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.25);
+        border: 1px solid rgba(255,255,255,0.15);
+        transition: all 0.8s ease;
+        z-index: 10;
+    }
+
+    /* خلفيات الطقس التفاعلية */
+    .weather-theme-sunny {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.9) 0%, rgba(180, 83, 9, 0.95) 100%);
+        border-color: rgba(253, 224, 71, 0.4);
+    }
+    .weather-theme-hot {
+        background: linear-gradient(135deg, rgba(234, 88, 12, 0.95) 0%, rgba(124, 45, 18, 0.95) 100%);
+        box-shadow: 0 0 20px rgba(234, 88, 12, 0.4);
+    }
+    .weather-theme-rain {
+        background: linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(2, 6, 23, 0.98) 100%);
+        border-color: rgba(56, 189, 248, 0.6);
+        box-shadow: 0 0 25px rgba(56, 189, 248, 0.35);
+    }
+    .weather-theme-clouds {
+        background: linear-gradient(135deg, rgba(51, 65, 85, 0.95) 0%, rgba(30, 41, 59, 0.95) 100%);
+    }
+
+    /* قماش أنيميشن قطرات المطر التفاعلي */
+    #headerRainCanvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        display: none;
+        z-index: 1;
+    }
+
+    /* شمس ساطعة ومتحركة */
+    .header-sun-glow {
+        position: relative;
+        width: 42px;
+        height: 42px;
+        background: radial-gradient(circle, #fef08a 25%, #facc15 65%, #eab308 100%);
+        border-radius: 50%;
+        box-shadow: 0 0 25px rgba(250, 204, 21, 0.95);
+        animation: pulseHeaderSun 2.5s ease-in-out infinite alternate;
+        flex-shrink: 0;
+        display: none;
+    }
+    @keyframes pulseHeaderSun {
+        0% { transform: scale(0.92); box-shadow: 0 0 15px rgba(250, 204, 21, 0.7); }
+        100% { transform: scale(1.08); box-shadow: 0 0 30px rgba(250, 204, 21, 1); }
+    }
+
+    /* سحابة ومطر متحرك */
+    .header-cloud-glow {
+        font-size: 2.2rem;
+        color: #bae6fd;
+        filter: drop-shadow(0 2px 8px rgba(56,189,248,0.5));
+        animation: floatHeaderCloud 3s ease-in-out infinite alternate;
+        flex-shrink: 0;
+        display: none;
+    }
+    @keyframes floatHeaderCloud {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(-4px); }
+    }
+
+    .header-weather-info {
+        position: relative;
+        z-index: 2;
+        flex-grow: 1;
+    }
+
+    .hw-title {
+        font-size: 0.85rem;
+        font-weight: 900;
+        color: #f8fafc;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .hw-desc {
+        font-size: 0.78rem;
+        font-weight: 700;
+        margin-top: 2px;
+        line-height: 1.3;
+    }
+    .hw-shendi-badge {
+        font-size: 0.75rem;
+        color: #e2e8f0;
+        margin-top: 3px;
+        padding-top: 3px;
+        border-top: 1px solid rgba(255,255,255,0.2);
+        display: flex;
+        justify-content: space-between;
+    }
+</style>
+
+<div id="headerWeatherBox" class="header-weather-card weather-theme-sunny">
+    <!-- قماش سقوط قطرات المطر الفعلي -->
+    <canvas id="headerRainCanvas"></canvas>
+
+    <!-- أيقونة الشمس أو المطر المتحركة -->
+    <div id="hSun" class="header-sun-glow"></div>
+    <div id="hCloud" class="header-cloud-glow"><i class="fas fa-cloud-showers-heavy"></i></div>
+
+    <div class="header-weather-info">
+        <div class="hw-title">
+            <i class="fas fa-map-marker-alt" style="color:#fecaca;"></i> 
+            <span>ريفي ود حامد:</span>
+            <span id="hWadTemp" style="font-size:1.3rem; font-weight:900; color:#fff;">--°</span>
+        </div>
+        <div class="hw-desc" id="hWadStatus">
+            <i class="fas fa-spinner fa-spin"></i> رصد الطقس المباشر...
+        </div>
+        <div class="hw-shendi-badge">
+            <span>شندي: <strong id="hShendiTemp">--°</strong></span>
+            <span id="hShendiStatus">صافٍ</span>
+        </div>
+    </div>
+</div>
+{% endblock %}
 
 {% block content %}
 <style>
@@ -63,7 +201,7 @@
         font-size: 1.1rem;
     }
 
-    /* سلايدر أفقي بانزلاق يمين/يسار سلس وبكامل الصورة بدون قص */
+    /* سلايدر أفقي سلس */
     .slider-viewport {
         position: relative;
         width: 100%;
@@ -72,7 +210,6 @@
         overflow: hidden;
         margin-bottom: 25px;
     }
-
     .slide {
         position: absolute;
         top: 0;
@@ -86,24 +223,14 @@
         justify-content: center;
         background: #060d17;
     }
-
-    .slide.active {
-        transform: translateX(0);
-        z-index: 2;
-    }
-
-    .slide.prev {
-        transform: translateX(-100%);
-        z-index: 1;
-    }
-
+    .slide.active { transform: translateX(0); z-index: 2; }
+    .slide.prev { transform: translateX(-100%); z-index: 1; }
     .slide img {
         width: 100%;
         height: 100%;
         object-fit: contain;
         background: radial-gradient(circle, #102138 0%, #060d17 100%);
     }
-
     .slide-caption {
         position: absolute;
         bottom: 0;
@@ -114,7 +241,6 @@
         color: #fff;
         z-index: 3;
     }
-
     .slider-arrow {
         position: absolute;
         top: 50%;
@@ -140,7 +266,7 @@
     .slider-arrow.prev-btn { right: 20px; }
     .slider-arrow.next-btn { left: 20px; }
 
-    /* حاويات إعلانات قوقل أدسنس المتجاوبة داخل الصفحة */
+    /* مساحات إعلانات أدسنس */
     .ads-slot {
         background: #f8fafc;
         border: 1px dashed #cbd5e1;
@@ -158,8 +284,6 @@
         margin-bottom: 5px;
         color: #94a3b8;
     }
-
-    /* إعلان مدمج وسط شبكة الأخبار (In-Feed Native Ad) */
     .in-feed-ad-card {
         grid-column: 1 / -1;
         background: #f8fafc;
@@ -182,7 +306,7 @@
     <div class="ticker-content">
         <div class="ticker-scroll">
             {% for item in breaking_news %}
-                <a href="{% if item.url %}{{ item.url }}{% else %}/news/{{ item.id }}{% endif %}" class="ticker-item">
+                <a href="{% if item.url %}{{ item.url }}{% else %}/news/{{ item.id }}-{{ item.title | slugify }}{% endif %}" class="ticker-item">
                     {{ item.title }}
                 </a>
                 <span class="ticker-logo"><i class="fas fa-water"></i> شندي</span>
@@ -192,7 +316,7 @@
 </div>
 {% endif %}
 
-<!-- السلايدر المتحرك بحركة أفقية انسيابية مع دعم الصور السحابية الدائمة -->
+<!-- السلايدر المتحرك بحركة أفقية انسيابية مع دعم الصور السحابية والروابط الصديقة -->
 {% if slider_news %}
 <div class="slider-viewport">
     <button class="slider-arrow prev-btn" onclick="moveSlide(-1)" aria-label="السابق"><i class="fas fa-chevron-right"></i></button>
@@ -204,7 +328,7 @@
         <div class="slide-caption">
             <span style="background:var(--primary-red); padding:4px 12px; border-radius:4px; font-size:0.85rem; font-weight:bold;">خبر رئيسي</span>
             <h2 style="font-size:1.8rem; margin-top:8px; font-weight:800;">
-                <a href="/news/{{ slide.id }}" style="color:#fff; text-decoration:none;">{{ slide.title }}</a>
+                <a href="/news/{{ slide.id }}-{{ slide.title | slugify }}" style="color:#fff; text-decoration:none;">{{ slide.title }}</a>
             </h2>
         </div>
     </div>
@@ -214,17 +338,17 @@
 
 <div class="container">
 
-    <!-- مساحة إعلانية متجاوبة (Banner Ad) أسفل السلايدر مباشرة -->
+    <!-- مساحة إعلانية متجاوبة أسفل السلايدر مباشرة -->
     <div class="ads-slot">
         <span>مساحة إعلانية متجاوبة - Google AdSense Unit</span>
     </div>
 
     <!-- عنوان القسم الحالي لتهيئة محركات البحث SEO -->
     <h1 style="border-right: 5px solid var(--primary-red); padding-right: 12px; margin: 20px 0 25px; font-size: 1.7rem; font-weight: 900; color: #0f2c59;">
-        {% if current_category %} قسم أخبار {{ current_category }} - صحيفة شندي {% else %} آخر أخبار وتقارير ولاية نهر النيل {% endif %}
+        {% if current_category %} قسم أخبار {{ current_category }} - صحيفة شندي {% else %} آخر أخبار وتقارير ولاية نهر النيل وريفي ود حامد {% endif %}
     </h1>
 
-    <!-- شبكة الأخبار مع دعم العرض السحابي للصور وفلترة الإعلانات -->
+    <!-- شبكة الأخبار مع دعم الروابط الصديقة لمحركات البحث -->
     <div class="news-grid">
         {% for news in news_list %}
         
@@ -237,14 +361,14 @@
             </div>
             <div class="card-body">
                 <h3 class="card-title" style="color: {{ news.color }};">
-                    <a href="/news/{{ news.id }}" style="color: inherit; text-decoration: none;">{{ news.title }}</a>
+                    <a href="/news/{{ news.id }}-{{ news.title | slugify }}" style="color: inherit; text-decoration: none;">{{ news.title }}</a>
                 </h3>
                 <p class="card-summary">
                     {{ news.details }}
                 </p>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 10px; border-top: 1px solid #f1f5f9;">
                     <span style="font-size: 0.8rem; color: #94a3b8;"><i class="far fa-clock"></i> {{ news.created_at }}</span>
-                    <a href="/news/{{ news.id }}" class="btn-read-more">
+                    <a href="/news/{{ news.id }}-{{ news.title | slugify }}" class="btn-read-more">
                         اقرأ التفاصيل <i class="fas fa-arrow-left"></i>
                     </a>
                 </div>
@@ -292,21 +416,160 @@
 
 </div>
 
+<!-- سكربت الطقس المباشر وأنيميشن المطر والشمس الساطعة -->
 <script>
+    /* ==========================================
+       محاكي سقوط قطرات المطر (Canvas Animation)
+       ========================================== */
+    const rCanvas = document.getElementById('headerRainCanvas');
+    let rCtx, rDrops = [], rAnimId;
+
+    if (rCanvas) {
+        rCtx = rCanvas.getContext('2d');
+    }
+
+    function initHeaderRain() {
+        if (!rCanvas) return;
+        rCanvas.width = rCanvas.parentElement.offsetWidth;
+        rCanvas.height = rCanvas.parentElement.offsetHeight;
+        rDrops = [];
+        for (let i = 0; i < 45; i++) {
+            rDrops.push({
+                x: Math.random() * rCanvas.width,
+                y: Math.random() * rCanvas.height,
+                length: Math.random() * 12 + 6,
+                speed: Math.random() * 7 + 8
+            });
+        }
+    }
+
+    function drawHeaderRain() {
+        if (!rCtx) return;
+        rCtx.clearRect(0, 0, rCanvas.width, rCanvas.height);
+        rCtx.strokeStyle = 'rgba(186, 230, 253, 0.75)';
+        rCtx.lineWidth = 1.2;
+        rCtx.lineCap = 'round';
+
+        rDrops.forEach(d => {
+            rCtx.beginPath();
+            rCtx.moveTo(d.x, d.y);
+            rCtx.lineTo(d.x - 1, d.y + d.length);
+            rCtx.stroke();
+
+            d.y += d.speed;
+            if (d.y > rCanvas.height) {
+                d.y = -d.length;
+                d.x = Math.random() * rCanvas.width;
+            }
+        });
+        rAnimId = requestAnimationFrame(drawHeaderRain);
+    }
+
+    function triggerRainEffect() {
+        if (!rCanvas) return;
+        rCanvas.style.display = "block";
+        initHeaderRain();
+        cancelAnimationFrame(rAnimId);
+        drawHeaderRain();
+    }
+
+    function clearRainEffect() {
+        if (!rCanvas) return;
+        rCanvas.style.display = "none";
+        cancelAnimationFrame(rAnimId);
+    }
+
+    /* ==========================================
+       قراءة طقس ريفي ود حامد وشندي الحي للأقمار الصناعية
+       ========================================== */
+    async function loadLiveHeaderWeather() {
+        const box = document.getElementById('headerWeatherBox');
+        const sun = document.getElementById('hSun');
+        const cloud = document.getElementById('hCloud');
+        if (!box) return;
+
+        try {
+            // ود حامد: Lat 16.4868, Long 32.8078 | شندي: Lat 16.6915, Long 33.4341
+            const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=16.4868,16.6915&longitude=32.8078,33.4341&current=temperature_2m,rain,weather_code&timezone=Africa%2FCairo');
+            const data = await res.json();
+
+            const wad = data[0].current;
+            const shendi = data[1].current;
+
+            const wTemp = Math.round(wad.temperature_2m);
+            const wRain = wad.rain;
+            const wCode = wad.weather_code;
+
+            document.getElementById('hWadTemp').innerText = `${wTemp}°`;
+
+            // هل تهطل أمطار في ود حامد؟
+            const isRaining = wRain > 0 || (wCode >= 51 && wCode <= 67) || (wCode >= 80 && wCode <= 99);
+
+            box.className = "header-weather-card";
+
+            if (isRaining) {
+                // حالة هطول الأمطار
+                box.classList.add("weather-theme-rain");
+                if (sun) sun.style.display = "none";
+                if (cloud) cloud.style.display = "block";
+                triggerRainEffect();
+                document.getElementById('hWadStatus').innerHTML = `
+                    <span style="color:#38bdf8; font-weight:900;">
+                        🌧️ أمطار تهطل الآن في ود حامد
+                    </span>
+                `;
+            } else if (wTemp >= 38) {
+                // حالة حرارة شديدة وشمس ساطعة
+                clearRainEffect();
+                box.classList.add("weather-theme-hot");
+                if (sun) sun.style.display = "block";
+                if (cloud) cloud.style.display = "none";
+                document.getElementById('hWadStatus').innerHTML = `<span style="color:#fed7aa;">☀️ طقس حار وشمس ساطعة</span>`;
+            } else if (wCode === 1 || wCode === 2 || wCode === 3) {
+                // غائم وسحب
+                clearRainEffect();
+                box.classList.add("weather-theme-clouds");
+                if (sun) sun.style.display = "none";
+                if (cloud) {
+                    cloud.style.display = "block";
+                    cloud.innerHTML = '<i class="fas fa-cloud"></i>';
+                }
+                document.getElementById('hWadStatus').innerText = "☁️ غيوم وسحب متفرقة";
+            } else {
+                // معتدل ومشمس
+                clearRainEffect();
+                box.classList.add("weather-theme-sunny");
+                if (sun) sun.style.display = "block";
+                if (cloud) cloud.style.display = "none";
+                document.getElementById('hWadStatus').innerText = "🌤️ أجواء مشمسة ومستقرة";
+            }
+
+            // طقس شندي
+            const sTemp = Math.round(shendi.temperature_2m);
+            const sRain = shendi.rain > 0 || (shendi.weather_code >= 51 && shendi.weather_code <= 99);
+            document.getElementById('hShendiTemp').innerText = `${sTemp}°`;
+            document.getElementById('hShendiStatus').innerText = sRain ? "ممطر" : "صافٍ";
+
+        } catch (e) {
+            document.getElementById('hWadTemp').innerText = `35°`;
+            document.getElementById('hWadStatus').innerText = "☀️ طقس مستقر";
+            document.getElementById('hShendiTemp').innerText = `36°`;
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", loadLiveHeaderWeather);
+
+    /* تشغيل السلايدر الأفقي */
     const slides = document.querySelectorAll('.slider-viewport .slide');
     let currentIndex = 0;
     let slideInterval;
 
     function showSlide(nextIndex) {
         if (slides.length <= 1) return;
-
         slides.forEach((slide, idx) => {
             slide.classList.remove('active', 'prev');
-            if (idx === currentIndex) {
-                slide.classList.add('prev');
-            }
+            if (idx === currentIndex) slide.classList.add('prev');
         });
-
         slides[nextIndex].classList.add('active');
         currentIndex = nextIndex;
     }
@@ -321,9 +584,7 @@
 
     function startTimer() {
         if (slides.length > 1) {
-            slideInterval = setInterval(() => {
-                moveSlide(1);
-            }, 3000);
+            slideInterval = setInterval(() => { moveSlide(1); }, 3000);
         }
     }
 
