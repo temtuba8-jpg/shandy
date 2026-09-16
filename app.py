@@ -180,7 +180,7 @@ def serve_news_image(news_id):
         return send_file(logo_path, mimetype='image/png')
     return '', 404
 
-# الصفحة الرئيسية
+# الصفحة الرئيسية (محدثة لدعم جميع مسميات قسم الاقتصاد بمرونة تامة)
 @app.route('/')
 def index():
     category = request.args.get('category')
@@ -202,9 +202,14 @@ def index():
     slider_news = cursor.fetchall()
 
     if category:
-        cursor.execute("SELECT COUNT(*) as count FROM news WHERE category = %s;", (category,))
-        total_news = cursor.fetchone()['count']
-        cursor.execute("SELECT * FROM news WHERE category = %s ORDER BY id DESC LIMIT %s OFFSET %s;", (category, per_page, offset))
+        if category in ['اقتصادية', 'إقتصادية', 'الشؤون الاقتصادية']:
+            cursor.execute("SELECT COUNT(*) as count FROM news WHERE category ILIKE %s OR category ILIKE %s OR category ILIKE %s;", ('%اقتصاد%', '%إقتصاد%', '%الشؤون الاقتصادية%'))
+            total_news = cursor.fetchone()['count']
+            cursor.execute("SELECT * FROM news WHERE category ILIKE %s OR category ILIKE %s OR category ILIKE %s ORDER BY id DESC LIMIT %s OFFSET %s;", ('%اقتصاد%', '%إقتصاد%', '%الشؤون الاقتصادية%', per_page, offset))
+        else:
+            cursor.execute("SELECT COUNT(*) as count FROM news WHERE category = %s;", (category,))
+            total_news = cursor.fetchone()['count']
+            cursor.execute("SELECT * FROM news WHERE category = %s ORDER BY id DESC LIMIT %s OFFSET %s;", (category, per_page, offset))
     else:
         cursor.execute("SELECT COUNT(*) as count FROM news;")
         total_news = cursor.fetchone()['count']
@@ -282,7 +287,7 @@ def about_us():
     {% block content %}
     <div class="container" style="max-width: 900px; margin: 40px auto; background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); line-height: 2;">
         <h1 style="color: #0f2c59; border-right: 5px solid var(--primary-red); padding-right: 15px; margin-bottom: 25px;">من نحن - صحيفة شندي الإخبارية</h1>
-        <p><strong>صحيفة شندي الإخبارية</strong> هي منصة إعلامية رقمية مستقلة وشاملة، انطلقت لتكون صوتاً حراً ومعبراً عن مدينة شندي وولاية نهر النيل وعموم السودان، تنقل الخبر بمهنية، دقة، وموضوعية غير منحازة.</p>
+        <p><strong>صحيفة شندي الإخبارية</strong> هي منصة إعلامية رقمية مستقلة وشاملة، انطلقت لتكون صوتاً حراً والمعبراً عن مدينة شندي وولاية نهر النيل وعموم السودان، تنقل الخبر بمهنية، دقة، وموضوعية غير منحازة.</p>
         <h3 style="color: var(--primary-red); margin-top: 25px;">رؤيتنا الإعلامية</h3>
         <p>أن نكون المصدر الإخباري الأول والموثوق الذي يربط أبناء شندي وولاية نهر النيل في الداخل والمهاجر بأرض الوطن، وتقديم محتوى صحفي يرتقي بثقافة وقضايا المجتمع.</p>
     </div>
