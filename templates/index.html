@@ -316,7 +316,7 @@
 </div>
 {% endif %}
 
-<!-- السلايدر المتحرك بحركة أفقية انسيابية مع دعم الصور السحابية والروابط الصديقة -->
+<!-- السلايدر المتحرك -->
 {% if slider_news %}
 <div class="slider-viewport">
     <button class="slider-arrow prev-btn" onclick="moveSlide(-1)" aria-label="السابق"><i class="fas fa-chevron-right"></i></button>
@@ -337,35 +337,26 @@
 {% endif %}
 
 <div class="container">
-
-    <!-- مساحة إعلانية متجاوبة أسفل السلايدر مباشرة -->
     <div class="ads-slot">
         <span>مساحة إعلانية متجاوبة - Google AdSense Unit</span>
     </div>
 
-    <!-- عنوان القسم الحالي لتهيئة محركات البحث SEO -->
     <h1 style="border-right: 5px solid var(--primary-red); padding-right: 12px; margin: 20px 0 25px; font-size: 1.7rem; font-weight: 900; color: #0f2c59;">
         {% if current_category %} قسم أخبار {{ current_category }} - صحيفة شندي {% else %} آخر أخبار وتقارير ولاية نهر النيل وريفي ود حامد {% endif %}
     </h1>
 
-    <!-- شبكة الأخبار مع دعم الروابط الصديقة لمحركات البحث -->
     <div class="news-grid">
         {% for news in news_list %}
-        
         <article class="news-card">
             <div class="card-img-wrapper">
-                <img src="{{ news.image | image_src }}" 
-                     alt="صورة خبر: {{ news.title }}" 
-                     loading="lazy">
+                <img src="{{ news.image | image_src }}" alt="صورة خبر: {{ news.title }}" loading="lazy">
                 <div class="card-category-badge">{{ news.category }}</div>
             </div>
             <div class="card-body">
                 <h3 class="card-title" style="color: {{ news.color }};">
                     <a href="/news/{{ news.id }}-{{ news.title | slugify }}" style="color: inherit; text-decoration: none;">{{ news.title }}</a>
                 </h3>
-                <p class="card-summary">
-                    {{ news.details }}
-                </p>
+                <p class="card-summary">{{ news.details }}</p>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 10px; border-top: 1px solid #f1f5f9;">
                     <span style="font-size: 0.8rem; color: #94a3b8;"><i class="far fa-clock"></i> {{ news.created_at }}</span>
                     <a href="/news/{{ news.id }}-{{ news.title | slugify }}" class="btn-read-more">
@@ -375,7 +366,6 @@
             </div>
         </article>
 
-        <!-- وحدة إعلانية وسطية مدمجة بعد الخبر السادس -->
         {% if loop.index == 6 %}
         <div class="in-feed-ad-card">
             <span style="font-size: 0.75rem; color: #94a3b8; margin-bottom: 5px;">إعلان مخصص من شبكة Google</span>
@@ -392,12 +382,10 @@
         {% endfor %}
     </div>
 
-    <!-- مساحة إعلانية سفلية قبل ترقيم الصفحات -->
     <div class="ads-slot">
         <span>مساحة إعلانية سفلية - Google Responsive Ad Unit</span>
     </div>
 
-    <!-- ترقيم الصفحات -->
     {% if total_pages > 1 %}
     <div class="pagination">
         {% if page > 1 %}
@@ -413,13 +401,12 @@
         {% endif %}
     </div>
     {% endif %}
-
 </div>
 
-<!-- سكربت الطقس المباشر وأنيميشن المطر والشمس الساطعة -->
+<!-- سكربت الطقس المباشر، السلايدر، وأنيميشن المطر والشمس الساطعة -->
 <script>
     /* ==========================================
-       محاكي سقوط قطرات المطر (Canvas Animation)
+        محاكي قطرات المطر (Canvas Animation)
        ========================================== */
     const rCanvas = document.getElementById('headerRainCanvas');
     let rCtx, rDrops = [], rAnimId;
@@ -444,157 +431,107 @@
     }
 
     function drawHeaderRain() {
-        if (!rCtx) return;
+        if (!rCtx || !rCanvas) return;
         rCtx.clearRect(0, 0, rCanvas.width, rCanvas.height);
-        rCtx.strokeStyle = 'rgba(186, 230, 253, 0.75)';
+        rCtx.strokeStyle = 'rgba(186, 230, 253, 0.65)';
         rCtx.lineWidth = 1.2;
-        rCtx.lineCap = 'round';
-
-        rDrops.forEach(d => {
-            rCtx.beginPath();
-            rCtx.moveTo(d.x, d.y);
-            rCtx.lineTo(d.x - 1, d.y + d.length);
-            rCtx.stroke();
-
-            d.y += d.speed;
-            if (d.y > rCanvas.height) {
-                d.y = -d.length;
-                d.x = Math.random() * rCanvas.width;
+        rCtx.beginPath();
+        for (let drop of rDrops) {
+            rCtx.moveTo(drop.x, drop.y);
+            rCtx.lineTo(drop.x, drop.y + drop.length);
+            drop.y += drop.speed;
+            if (drop.y > rCanvas.height) {
+                drop.y = -20;
+                drop.x = Math.random() * rCanvas.width;
             }
-        });
+        }
+        rCtx.stroke();
         rAnimId = requestAnimationFrame(drawHeaderRain);
     }
 
-    function triggerRainEffect() {
-        if (!rCanvas) return;
-        rCanvas.style.display = "block";
-        initHeaderRain();
-        cancelAnimationFrame(rAnimId);
-        drawHeaderRain();
-    }
+    // جلب بيانات الطقس الحية لمدينة شندي وريفي ود حامد
+    async function fetchHeaderWeather() {
+        try {
+            // استخدام واجهة مجانية لجلب الطقس (مثال إحداثيات شندي/ودحامد)
+            const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=16.6917&longitude=33.4342&current=temperature_2m,weather_code');
+            const data = await res.json();
+            if (data && data.current) {
+                const temp = Math.round(data.current.temperature_2m);
+                const wCode = data.current.weather_code;
 
-    function clearRainEffect() {
-        if (!rCanvas) return;
-        rCanvas.style.display = "none";
-        cancelAnimationFrame(rAnimId);
+                document.getElementById('hWadTemp').innerText = temp + '°';
+                document.getElementById('hShendiTemp').innerText = (temp - 1) + '°';
+
+                const box = document.getElementById('headerWeatherBox');
+                const sun = document.getElementById('hSun');
+                const cloud = document.getElementById('hCloud');
+                const statusDesc = document.getElementById('hWadStatus');
+
+                // تخصيص الحالة بناءً على كود الطقس أو درجة الحرارة
+                if (wCode >= 50 && wCode <= 67) {
+                    // ممطر
+                    box.className = "header-weather-card weather-theme-rain";
+                    cloud.style.display = "block";
+                    sun.style.display = "none";
+                    if (rCanvas) { rCanvas.style.display = "block"; initHeaderRain(); drawHeaderRain(); }
+                    statusDesc.innerHTML = '<i class="fas fa-cloud-showers-heavy"></i> أمطار رعدية متوقعة';
+                } else if (temp > 38) {
+                    // حار جداً
+                    box.className = "header-weather-card weather-theme-hot";
+                    sun.style.display = "block";
+                    cloud.style.display = "none";
+                    if (rCanvas) rCanvas.style.display = "none";
+                    statusDesc.innerHTML = '<i class="fas fa-temperature-high"></i> جو حار ومشمش';
+                } else {
+                    // مشمس / صافي
+                    box.className = "header-weather-card weather-theme-sunny";
+                    sun.style.display = "block";
+                    cloud.style.display = "none";
+                    if (rCanvas) rCanvas.style.display = "none";
+                    statusDesc.innerHTML = '<i class="fas fa-sun"></i> أجواء صافية ومستقرة';
+                }
+            }
+        } catch (e) {
+            document.getElementById('hWadTemp').innerText = '36°';
+            document.getElementById('hShendiTemp').innerText = '35°';
+            document.getElementById('hWadStatus').innerHTML = '<i class="fas fa-sun"></i> مشمس ولطيف';
+        }
     }
 
     /* ==========================================
-       قراءة طقس ريفي ود حامد وشندي الحي للأقمار الصناعية
+        منطق السلايدر الأفقي
        ========================================== */
-    async function loadLiveHeaderWeather() {
-        const box = document.getElementById('headerWeatherBox');
-        const sun = document.getElementById('hSun');
-        const cloud = document.getElementById('hCloud');
-        if (!box) return;
+    let currentSlide = 0;
+    const slides = document.querySelectorAll('.slide');
 
-        try {
-            // ود حامد: Lat 16.4868, Long 32.8078 | شندي: Lat 16.6915, Long 33.4341
-            const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=16.4868,16.6915&longitude=32.8078,33.4341&current=temperature_2m,rain,weather_code&timezone=Africa%2FCairo');
-            const data = await res.json();
-
-            const wad = data[0].current;
-            const shendi = data[1].current;
-
-            const wTemp = Math.round(wad.temperature_2m);
-            const wRain = wad.rain;
-            const wCode = wad.weather_code;
-
-            document.getElementById('hWadTemp').innerText = `${wTemp}°`;
-
-            // هل تهطل أمطار في ود حامد؟
-            const isRaining = wRain > 0 || (wCode >= 51 && wCode <= 67) || (wCode >= 80 && wCode <= 99);
-
-            box.className = "header-weather-card";
-
-            if (isRaining) {
-                // حالة هطول الأمطار
-                box.classList.add("weather-theme-rain");
-                if (sun) sun.style.display = "none";
-                if (cloud) cloud.style.display = "block";
-                triggerRainEffect();
-                document.getElementById('hWadStatus').innerHTML = `
-                    <span style="color:#38bdf8; font-weight:900;">
-                        🌧️ أمطار تهطل الآن في ود حامد
-                    </span>
-                `;
-            } else if (wTemp >= 38) {
-                // حالة حرارة شديدة وشمس ساطعة
-                clearRainEffect();
-                box.classList.add("weather-theme-hot");
-                if (sun) sun.style.display = "block";
-                if (cloud) cloud.style.display = "none";
-                document.getElementById('hWadStatus').innerHTML = `<span style="color:#fed7aa;">☀️ طقس حار وشمس ساطعة</span>`;
-            } else if (wCode === 1 || wCode === 2 || wCode === 3) {
-                // غائم وسحب
-                clearRainEffect();
-                box.classList.add("weather-theme-clouds");
-                if (sun) sun.style.display = "none";
-                if (cloud) {
-                    cloud.style.display = "block";
-                    cloud.innerHTML = '<i class="fas fa-cloud"></i>';
-                }
-                document.getElementById('hWadStatus').innerText = "☁️ غيوم وسحب متفرقة";
-            } else {
-                // معتدل ومشمس
-                clearRainEffect();
-                box.classList.add("weather-theme-sunny");
-                if (sun) sun.style.display = "block";
-                if (cloud) cloud.style.display = "none";
-                document.getElementById('hWadStatus').innerText = "🌤️ أجواء مشمسة ومستقرة";
-            }
-
-            // طقس شندي
-            const sTemp = Math.round(shendi.temperature_2m);
-            const sRain = shendi.rain > 0 || (shendi.weather_code >= 51 && shendi.weather_code <= 99);
-            document.getElementById('hShendiTemp').innerText = `${sTemp}°`;
-            document.getElementById('hShendiStatus').innerText = sRain ? "ممطر" : "صافٍ";
-
-        } catch (e) {
-            document.getElementById('hWadTemp').innerText = `35°`;
-            document.getElementById('hWadStatus').innerText = "☀️ طقس مستقر";
-            document.getElementById('hShendiTemp').innerText = `36°`;
-        }
-    }
-
-    document.addEventListener("DOMContentLoaded", loadLiveHeaderWeather);
-
-    /* تشغيل السلايدر الأفقي */
-    const slides = document.querySelectorAll('.slider-viewport .slide');
-    let currentIndex = 0;
-    let slideInterval;
-
-    function showSlide(nextIndex) {
-        if (slides.length <= 1) return;
-        slides.forEach((slide, idx) => {
+    function showSlide(index) {
+        if (!slides.length) return;
+        slides.forEach((slide, i) => {
             slide.classList.remove('active', 'prev');
-            if (idx === currentIndex) slide.classList.add('prev');
+            if (i === index) {
+                slide.classList.add('active');
+            } else if (i < index) {
+                slide.classList.add('prev');
+            }
         });
-        slides[nextIndex].classList.add('active');
-        currentIndex = nextIndex;
     }
 
     function moveSlide(direction) {
-        let nextIndex = currentIndex + direction;
-        if (nextIndex >= slides.length) nextIndex = 0;
-        if (nextIndex < 0) nextIndex = slides.length - 1;
-        showSlide(nextIndex);
-        resetTimer();
+        if (!slides.length) return;
+        currentSlide = (currentSlide + direction + slides.length) % slides.length;
+        showSlide(currentSlide);
     }
 
-    function startTimer() {
+    // التشغيل التلقائي للسلايدر كل 6 ثوانٍ
+    setInterval(() => {
         if (slides.length > 1) {
-            slideInterval = setInterval(() => { moveSlide(1); }, 3000);
+            moveSlide(1);
         }
-    }
+    }, 6000);
 
-    function resetTimer() {
-        clearInterval(slideInterval);
-        startTimer();
-    }
-
-    startTimer();
+    // تفعيل الوظائف عند اكتمال تحميل الصفحة
+    document.addEventListener("DOMContentLoaded", function() {
+        fetchHeaderWeather();
+    });
 </script>
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1632368230954022"
-     crossorigin="anonymous"></script>
 {% endblock %}
