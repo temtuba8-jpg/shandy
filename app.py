@@ -49,7 +49,7 @@ def init_db():
             );
         ''')
         
-        # جدول الأخبار - عمود image يحفظ مسار الصورة أو كود Base64 السحابي الدائم
+        # جدول الأخبار
         cursor.execute('''
             CREATE TABLE IF NOT EXISTS news (
                 id SERIAL PRIMARY KEY,
@@ -60,8 +60,22 @@ def init_db():
                 color TEXT DEFAULT '#1f2937',
                 is_breaking INTEGER DEFAULT 0,
                 in_slider INTEGER DEFAULT 0,
+                author TEXT DEFAULT 'admin',
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
+        ''')
+
+        # إضافة عمود author إذا كان الجدول منشأ سابقاً بدونه
+        cursor.execute('''
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1 FROM information_schema.columns 
+                    WHERE table_name='news' AND column_name='author'
+                ) THEN
+                    ALTER TABLE news ADD COLUMN author TEXT DEFAULT 'admin';
+                END IF;
+            END $$;
         ''')
         
         # جدول الشريط الإخباري العاجل
@@ -204,7 +218,7 @@ def index():
                            slider_news=slider_news, current_category=category,
                            page=page, total_pages=total_pages)
 
-# صفحة تفاصيل الخبر الكاملة (تدعم الرابط القديم بالرقم وتدعم الرابط الصديق لمحركات البحث بالعنوان العربي)
+# صفحة تفاصيل الخبر الكاملة
 @app.route('/news/<int:news_id>')
 @app.route('/news/<int:news_id>-<slug>')
 def news_detail(news_id, slug=None):
@@ -352,7 +366,7 @@ def sitemap_xml():
     xml.append(f'<url><loc>{base_url}/terms</loc><priority>0.5</priority><changefreq>monthly</changefreq></url>')
     xml.append(f'<url><loc>{base_url}/contact</loc><priority>0.5</priority><changefreq>monthly</changefreq></url>')
 
-    for cat in ['سياسية', 'اجتماعية', 'ثقافية', 'ترفيه']:
+    for cat in ['سياسية', 'اجتماعية', 'إقتصادية', 'رياضية']:
         xml.append(f'<url><loc>{base_url}/?category={cat}</loc><priority>0.8</priority><changefreq>daily</changefreq></url>')
 
     for item in news_items:
@@ -397,6 +411,7 @@ def admin_dashboard():
         return redirect(url_for('admin_login'))
 
     search = request.args.get('search', '')
+    author_filter = request.args.get('author', '')
     page = request.args.get('page', 1, type=int)
     per_page = 10
     offset = (page - 1) * per_page
@@ -407,20 +422,33 @@ def admin_dashboard():
     cursor.execute("SELECT * FROM ticker_news ORDER BY id DESC;")
     ticker_items = cursor.fetchall()
 
+    query_conditions = []
+    params = []
+
     if search:
-        cursor.execute("SELECT COUNT(*) as count FROM news WHERE title ILIKE %s;", (f'%{search}%',))
-        total = cursor.fetchone()['count']
-        cursor.execute("SELECT * FROM news WHERE title ILIKE %s ORDER BY id DESC LIMIT %s OFFSET %s;", (f'%{search}%', per_page, offset))
-    else:
-        cursor.execute("SELECT COUNT(*) as count FROM news;")
-        total = cursor.fetchone()['count']
-        cursor.execute("SELECT * FROM news ORDER BY id DESC LIMIT %s OFFSET %s;", (per_page, offset))
+        query_conditions.append("title ILIKE %s")
+        params.append(f'%{search}%')
+    if author_filter:
+        query_conditions.append("author = %s")
+        params.append(author_filter)
+
+    where_clause = ""
+    if query_conditions:
+        where_clause = "WHERE " + " AND ".join(query_conditions)
+
+    count_query = f"SELECT COUNT(*) as count FROM news {where_clause};"
+    cursor.execute(count_query, tuple(params))
+    total = cursor.fetchone()['count']
+
+    fetch_query = f"SELECT * FROM news {where_clause} ORDER BY id DESC LIMIT %s OFFSET %s;"
+    cursor.execute(fetch_query, tuple(params + [per_page, offset]))
 
     news_list = cursor.fetchall()
     total_pages = (total + per_page - 1) // per_page
     cursor.close()
 
-    return render_template('admin_dashboard.html', news_list=news_list, ticker_items=ticker_items, page=page, total_pages=total_pages, search=search)
+    return render_template('admin_dashboard.html', news_list=news_list, ticker_items=ticker_items,
+                           page=page, total_pages=total_pages, search=search, author_filter=author_filter)
 
 @app.route('/admin/add-ticker', methods=['POST'])
 def add_ticker():
@@ -452,7 +480,7 @@ def delete_ticker(ticker_id):
     flash('تم حذف الخبر من الشريط الإخباري بنجاح')
     return redirect(url_for('admin_dashboard'))
 
-# إضافة خبر مع الحفظ السحابي الدائم للصورة
+# إضافة خبر مع الحفظ السحابي الدائم للصورة وتوثيق المشرف الكاتب
 @app.route('/admin/add-news', methods=['POST'])
 def add_news():
     if not session.get('logged_in'):
@@ -464,6 +492,7 @@ def add_news():
     color = request.form.get('color', '#1f2937')
     is_breaking = 1 if 'is_breaking' in request.form else 0
     in_slider = 1 if 'in_slider' in request.form else 0
+    author = session.get('username', 'admin')
 
     image_data = ''
     if 'image' in request.files:
@@ -481,9 +510,9 @@ def add_news():
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute('''
-        INSERT INTO news (title, details, category, image, color, is_breaking, in_slider)
-        VALUES (%s, %s, %s, %s, %s, %s, %s);
-    ''', (title, details, category, image_data, color, is_breaking, in_slider))
+        INSERT INTO news (title, details, category, image, color, is_breaking, in_slider, author)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
+    ''', (title, details, category, image_data, color, is_breaking, in_slider, author))
     conn.commit()
     cursor.close()
     flash('تم نشر الخبر وحفظ الصورة سحابياً بنجاح!')
@@ -542,6 +571,10 @@ def delete_news(news_id):
     flash('تم حذف الخبر بنجاح')
     return redirect(url_for('admin_dashboard'))
 
+# ==============================================================================
+# إدارة المشرفين ومتابعة مساهماتهم وتعديل كلمات المرور وحذفهم
+# ==============================================================================
+
 @app.route('/admin/managers', methods=['GET', 'POST'])
 def manage_managers():
     if not session.get('logged_in'):
@@ -551,20 +584,77 @@ def manage_managers():
     cursor = conn.cursor()
 
     if request.method == 'POST':
-        new_username = request.form['username']
-        new_password = generate_password_hash(request.form['password'])
-        try:
-            cursor.execute("INSERT INTO managers (username, password) VALUES (%s, %s);", (new_username, new_password))
-            conn.commit()
-            flash('تمت إضافة المشرف بنجاح')
-        except psycopg2.IntegrityError:
-            conn.rollback()
-            flash('اسم المستخدم موجود مسبقاً')
+        new_username = request.form.get('username', '').strip()
+        new_password = request.form.get('password', '').strip()
+        if new_username and new_password:
+            hashed_pwd = generate_password_hash(new_password)
+            try:
+                cursor.execute("INSERT INTO managers (username, password, role) VALUES (%s, %s, %s);", (new_username, hashed_pwd, 'admin'))
+                conn.commit()
+                flash('تمت إضافة المشرف بنجاح')
+            except psycopg2.IntegrityError:
+                conn.rollback()
+                flash('اسم المستخدم موجود مسبقاً')
+        else:
+            flash('يرجى تعبئة كافة الحقول بشكل صحيح')
 
-    cursor.execute("SELECT id, username, role FROM managers;")
+    # جلب المشرفين مع إجمالي عدد الأخبار التي نشرها كل مشرف
+    cursor.execute('''
+        SELECT m.id, m.username, m.role, COUNT(n.id) as news_count 
+        FROM managers m 
+        LEFT JOIN news n ON m.username = n.author 
+        GROUP BY m.id, m.username, m.role 
+        ORDER BY m.id ASC;
+    ''')
     managers = cursor.fetchall()
     cursor.close()
     return render_template('admin_managers.html', managers=managers)
+
+# مسار إعادة تعيين وتغيير كلمة سر المشرف
+@app.route('/admin/managers/reset-password/<int:manager_id>', methods=['POST'])
+def reset_manager_password(manager_id):
+    if not session.get('logged_in'):
+        return redirect(url_for('admin_login'))
+
+    new_pwd = request.form.get('new_password', '').strip()
+    if not new_pwd:
+        flash('يرجى كتابة كلمة المرور الجديدة')
+        return redirect(url_for('manage_managers'))
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE managers SET password = %s WHERE id = %s;", (generate_password_hash(new_pwd), manager_id))
+    conn.commit()
+    cursor.close()
+    flash('تم تحديث كلمة المرور للمشرف بنجاح!')
+    return redirect(url_for('manage_managers'))
+
+# مسار حذف المشرف
+@app.route('/admin/managers/delete/<int:manager_id>')
+def delete_manager(manager_id):
+    if not session.get('logged_in'):
+        return redirect(url_for('admin_login'))
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT username, role FROM managers WHERE id = %s;", (manager_id,))
+    manager = cursor.fetchone()
+
+    if not manager:
+        cursor.close()
+        flash('المشرف غير موجود')
+        return redirect(url_for('manage_managers'))
+
+    if manager['username'] == 'admin' or manager['role'] == 'super_admin':
+        cursor.close()
+        flash('لا يمكن حذف حساب الإدارة الرئيسي (admin)!')
+        return redirect(url_for('manage_managers'))
+
+    cursor.execute("DELETE FROM managers WHERE id = %s;", (manager_id,))
+    conn.commit()
+    cursor.close()
+    flash(f'تم حذف المشرف {manager["username"]} بنجاح')
+    return redirect(url_for('manage_managers'))
 
 if __name__ == '__main__':
     init_db()
