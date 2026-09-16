@@ -61,14 +61,14 @@
         }
         .btn-publish:hover { background: #900c1e; }
         
-        .btn-ticker {
-            background: #0f2c59;
-            color: #fff;
-            padding: 10px 24px;
-            border: none;
-            border-radius: 6px;
-            font-weight: bold;
-            cursor: pointer;
+        .btn-ticker { 
+            background: #0f2c59; 
+            color: #fff; 
+            padding: 10px 24px; 
+            border: none; 
+            border-radius: 6px; 
+            font-weight: bold; 
+            cursor: pointer; 
         }
         .btn-ticker:hover { background: #1e3a8a; }
 
@@ -76,27 +76,41 @@
         th, td { border: 1px solid #e2e8f0; padding: 12px; text-align: right; }
         th { background: #0f2c59; color: #fff; }
         
-        .alert {
-            background: #dcfce7;
-            color: #166534;
-            padding: 12px 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-weight: bold;
+        .alert { 
+            background: #dcfce7; 
+            color: #166534; 
+            padding: 12px 20px; 
+            border-radius: 8px; 
+            margin-bottom: 20px; 
+            font-weight: bold; 
         }
         
-        .badge-btn {
-            background: #0f2c59;
-            color: #fff;
-            padding: 8px 16px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-weight: bold;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
+        .badge-btn { 
+            background: #0f2c59; 
+            color: #fff; 
+            padding: 8px 16px; 
+            border-radius: 6px; 
+            text-decoration: none; 
+            font-weight: bold; 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 6px; 
         }
         .badge-btn:hover { background: #1e3a8a; }
+
+        .author-tag {
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .author-tag:hover {
+            background: #c7d2fe;
+        }
     </style>
 </head>
 <body>
@@ -109,7 +123,7 @@
             <span style="color:#64748b; font-size:0.9rem;">المشرف المسجل: <strong>{{ session.username }}</strong></span>
         </div>
         <div style="display:flex; gap:12px; align-items:center;">
-            <a href="/admin/managers" class="badge-btn"><i class="fas fa-users-cog"></i> المشرفين</a>
+            <a href="/admin/managers" class="badge-btn"><i class="fas fa-users-cog"></i> إدارة المشرفين ومتابعتهم</a>
             <a href="/" target="_blank" style="color:#0f2c59; font-weight:bold; text-decoration:none;"><i class="fas fa-globe"></i> زيارة الموقع</a>
             <a href="/admin/logout" style="color:#c8102e; font-weight:bold; text-decoration:none; margin-right:10px;"><i class="fas fa-sign-out-alt"></i> خروج</a>
         </div>
@@ -139,7 +153,6 @@
             <button type="submit" class="btn-ticker" style="height:48px;"><i class="fas fa-plus"></i> إضافة للشريط</button>
         </form>
 
-        <!-- قائمة أخبار الشريط الحالي -->
         <h4 style="margin-top:25px; margin-bottom:10px; color:#334155;">الأخبار المعروضة في الشريط الآن:</h4>
         <table>
             <thead>
@@ -179,11 +192,11 @@
             <div style="display:flex; gap:20px; flex-wrap:wrap;">
                 <div class="form-group" style="flex:1; min-width:200px;">
                     <label>قسم الخبر:</label>
-                    <select name="category">
+                    <select name="category" required>
                         <option value="سياسية">أخبار سياسية</option>
                         <option value="اجتماعية">أخبار اجتماعية</option>
-                        <option value="ثقافية">أخبار ثقافية وفنية</option>
-                        <option value="ترفيه">منوعات وترفيه</option>
+                        <option value="إقتصادية">شؤون إقتصادية</option>
+                        <option value="رياضية">أخبار رياضية</option>
                     </select>
                 </div>
 
@@ -217,8 +230,18 @@
     <!-- جدول الأخبار المنشورة -->
     <div class="card">
         <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
-            <h3><i class="fas fa-list"></i> الأخبار المنشورة</h3>
+            <div>
+                <h3 style="margin-bottom:4px;"><i class="fas fa-list"></i> الأخبار المنشورة</h3>
+                {% if author_filter %}
+                <span style="color:#2563eb; font-size:0.9rem;">
+                    عرض أخبار المشرف: <strong>{{ author_filter }}</strong> 
+                    <a href="/admin" style="color:#c8102e; text-decoration:none; margin-right:8px;"><i class="fas fa-times-circle"></i> إلغاء التصفية</a>
+                </span>
+                {% endif %}
+            </div>
+            
             <form method="GET" style="display:flex; gap:10px;">
+                {% if author_filter %}<input type="hidden" name="author" value="{{ author_filter }}">{% endif %}
                 <input type="text" name="search" value="{{ search }}" placeholder="بحث بعنوان الخبر..." style="width:250px; padding:8px;">
                 <button type="submit" style="background:#0f2c59; color:#fff; border:none; padding:8px 18px; border-radius:6px; font-weight:bold; cursor:pointer;">بحث</button>
             </form>
@@ -230,6 +253,7 @@
                     <th>الصورة</th>
                     <th>العنوان</th>
                     <th>القسم</th>
+                    <th>الناشر (المشرف)</th>
                     <th>تاريخ النشر</th>
                     <th>العمليات</th>
                 </tr>
@@ -237,17 +261,26 @@
             <tbody>
                 {% for item in news_list %}
                 <tr>
-                    <td><img src="{{ url_for('static', filename='uploads/' + item.image) if item.image else '' }}" width="50" height="40" style="object-fit:cover; border-radius:4px;"></td>
-                    <td style="color:{{ item.color }}; font-weight:bold;">{{ item.title }}</td>
+                    <td><img src="{{ item.image | image_src }}" width="50" height="40" style="object-fit:cover; border-radius:4px;" alt="صورة مصغرة"></td>
+                    <td style="color:{{ item.color }}; font-weight:bold;">
+                        <a href="/news/{{ item.id }}-{{ item.title | slugify }}" target="_blank" style="color:inherit; text-decoration:none;">
+                            {{ item.title }}
+                        </a>
+                    </td>
                     <td>{{ item.category }}</td>
+                    <td>
+                        <a href="/admin?author={{ item.author }}" class="author-tag" title="عرض أخبار هذا المشرف فقط">
+                            <i class="fas fa-user-edit"></i> {{ item.author if item.author else 'admin' }}
+                        </a>
+                    </td>
                     <td>{{ item.created_at }}</td>
                     <td>
-                        <a href="/admin/delete/{{ item.id }}" onclick="return confirm('هل أنت متأكد من حذف هذا الخبر؟')" style="color:#c8102e; font-weight:bold; text-decoration:none;"><i class="fas fa-trash"></i> حذف</a>
+                        <a href="/admin/delete/{{ item.id }}" onclick="return confirm('هل أنت متأكد من حذف هذا الخبر نهائياً؟')" style="color:#c8102e; font-weight:bold; text-decoration:none;"><i class="fas fa-trash"></i> حذف</a>
                     </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="5" style="text-align:center; padding:20px; color:#64748b;">لا توجد أخبار منشورة حتى الآن.</td>
+                    <td colspan="6" style="text-align:center; padding:20px; color:#64748b;">لا توجد أخبار مطابقة.</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -256,14 +289,12 @@
         {% if total_pages > 1 %}
         <div style="display:flex; justify-content:center; gap:8px; margin-top:25px;">
             {% for p in range(1, total_pages + 1) %}
-                <a href="?page={{ p }}&search={{ search }}" style="padding:6px 14px; background:{% if p==page %}#c8102e;color:#fff;{% else %}#fff;{% endif %} text-decoration:none; border:1px solid #cbd5e1; border-radius:6px; font-weight:bold;">{{ p }}</a>
+                <a href="?page={{ p }}&search={{ search }}{% if author_filter %}&author={{ author_filter }}{% endif %}" style="padding:6px 14px; background:{% if p==page %}#c8102e;color:#fff;{% else %}#fff;{% endif %} text-decoration:none; border:1px solid #cbd5e1; border-radius:6px; font-weight:bold;">{{ p }}</a>
             {% endfor %}
         </div>
         {% endif %}
     </div>
 </div>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1632368230954022"
-     crossorigin="anonymous"></script>
 
 </body>
 </html>
