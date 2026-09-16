@@ -2,36 +2,223 @@
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <title>إدارة المشرفين | صحيفة شندي</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <title>إدارة المشرفين وصلاحيات النشر | صحيفة شندي</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        * { font-family: 'Cairo', sans-serif; }
-        body { background: #f8fafc; padding: 30px; }
-        .box { max-width: 600px; margin: auto; background:#fff; padding: 25px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        input { width: 100%; padding: 10px; margin: 8px 0 15px; border: 1px solid #ccc; border-radius: 5px; }
-        button { background: #c8102e; color: #fff; border:none; padding:10px 20px; font-weight:bold; cursor:pointer; border-radius:5px; }
+        * { font-family: 'Cairo', sans-serif; box-sizing: border-box; }
+        body { background: #f1f5f9; margin: 0; padding: 25px; color: #1e293b; }
+        .container { max-width: 1050px; margin: auto; }
+        
+        .card { 
+            background: #fff; 
+            padding: 25px; 
+            border-radius: 10px; 
+            margin-bottom: 25px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05); 
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #0f2c59;
+            text-decoration: none;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        .back-btn:hover { color: #c8102e; }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+        .form-group {
+            flex: 1;
+            min-width: 220px;
+        }
+
+        label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 6px;
+            color: #334155;
+            font-size: 0.95rem;
+        }
+
+        input[type="text"], input[type="password"] {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            font-size: 0.95rem;
+        }
+
+        .btn-add {
+            background: #c8102e;
+            color: #fff;
+            border: none;
+            padding: 11px 25px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background 0.2s;
+            height: 44px;
+        }
+        .btn-add:hover { background: #900c1e; }
+
+        .btn-reset {
+            background: #0f2c59;
+            color: #fff;
+            border: none;
+            padding: 7px 14px;
+            font-weight: bold;
+            font-size: 0.82rem;
+            cursor: pointer;
+            border-radius: 5px;
+            white-space: nowrap;
+        }
+        .btn-reset:hover { background: #1e3a8a; }
+
+        .btn-del {
+            color: #c8102e;
+            text-decoration: none;
+            font-weight: bold;
+            padding: 6px 12px;
+            border-radius: 5px;
+            border: 1px solid #fecaca;
+            background: #fef2f2;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 0.85rem;
+        }
+        .btn-del:hover { background: #fee2e2; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #e2e8f0; padding: 12px; text-align: right; vertical-align: middle; }
+        th { background: #0f2c59; color: #fff; font-size: 0.95rem; }
+
+        .badge-role {
+            background: #e2e8f0;
+            color: #475569;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+        .badge-super {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .news-counter {
+            background: #dbeafe;
+            color: #1d4ed8;
+            padding: 4px 10px;
+            border-radius: 20px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 0.85rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .news-counter:hover { background: #bfdbfe; }
+
+        .alert {
+            background: #dcfce7;
+            color: #166534;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
     </style>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1632368230954022"
-     crossorigin="anonymous"></script>
 </head>
 <body>
-    <div class="box">
-        <a href="/admin">← العودة للوحة التحكم</a>
-        <h2 style="margin-top:15px;">إضافة مدير جديد</h2>
-        <form method="POST">
-            <label>اسم المستخدم للجديد:</label>
-            <input type="text" name="username" required>
-            <label>كلمة المرور:</label>
-            <input type="password" name="password" required>
-            <button type="submit">إضافة المدير</button>
-        </form>
 
-        <h3 style="margin-top:30px;">المدراء الحاليين:</h3>
-        <ul>
-            {% for m in managers %}
-                <li>{{ m.username }} ({{ m.role }})</li>
-            {% endfor %}
-        </ul>
+<div class="container">
+    <a href="/admin" class="back-btn"><i class="fas fa-arrow-right"></i> العودة للوحة التحكم الرئيسية</a>
+
+    <!-- تنبيهات النظام -->
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        {% for message in messages %}
+          <div class="alert"><i class="fas fa-info-circle"></i> {{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <!-- إضافة مشرف جديد -->
+    <div class="card" style="border-top: 4px solid #c8102e;">
+        <h3 style="margin-top:0; color:#0f2c59;"><i class="fas fa-user-plus"></i> إضافة مشرف جديد</h3>
+        <form method="POST">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>اسم المستخدم الجديد:</label>
+                    <input type="text" name="username" required placeholder="مثال: ahmed_editor">
+                </div>
+                <div class="form-group">
+                    <label>كلمة المرور:</label>
+                    <input type="password" name="password" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="btn-add"><i class="fas fa-plus-circle"></i> إضافة المشرف</button>
+            </div>
+        </form>
     </div>
+
+    <!-- قائمة المشرفين وإدارتهم -->
+    <div class="card">
+        <h3 style="margin-top:0; color:#0f2c59;"><i class="fas fa-users-cog"></i> المشرفون الحاليون وإحصائياتهم</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>المشرف</th>
+                    <th>الرتبة</th>
+                    <th>الأخبار المنشورة</th>
+                    <th>تعديل كلمة المرور</th>
+                    <th>إجراء</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for m in managers %}
+                <tr>
+                    <td><strong><i class="fas fa-user"></i> {{ m.username }}</strong></td>
+                    <td>
+                        <span class="badge-role {% if m.role == 'super_admin' %}badge-super{% endif %}">
+                            {{ m.role }}
+                        </span>
+                    </td>
+                    <td>
+                        <a href="/admin?author={{ m.username }}" class="news-counter" title="عرض أخبار هذا المشرف">
+                            <i class="fas fa-newspaper"></i> {{ m.news_count if m.news_count is defined else 0 }} خبر
+                        </a>
+                    </td>
+                    <td>
+                        <form action="/admin/managers/reset-password/{{ m.id }}" method="POST" style="display:flex; gap:6px; align-items:center;">
+                            <input type="password" name="new_password" required placeholder="كلمة سر جديدة" style="width:160px; padding:6px; margin:0; font-size:0.85rem;">
+                            <button type="submit" class="btn-reset"><i class="fas fa-key"></i> حفظ</button>
+                        </form>
+                    </td>
+                    <td>
+                        {% if m.username != 'admin' and m.role != 'super_admin' %}
+                        <a href="/admin/managers/delete/{{ m.id }}" onclick="return confirm('هل أنت متأكد من حذف المشرف {{ m.username }}؟ لن تُحذف أخباره.')" class="btn-del">
+                            <i class="fas fa-trash-alt"></i> حذف
+                        </a>
+                        {% else %}
+                        <span style="color:#94a3b8; font-size:0.8rem;"><i class="fas fa-lock"></i> محمي</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
 </body>
 </html>
