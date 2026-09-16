@@ -101,7 +101,7 @@
             align-items: center;
         }
 
-        /* الهيدر الرئيسي مع الشعار والعبارة يساره */
+        /* الهيدر الرئيسي مع الشعار والعبارة يساره وحالة الطقس شمالاً */
         .main-header {
             background: linear-gradient(135deg, #091a33, #040c18);
             padding: 12px 5%;
@@ -526,7 +526,7 @@
         </div>
     </div>
 
-    <!-- الهيدر الرئيسي مع الشعار والعبارة يساره -->
+    <!-- الهيدر الرئيسي مع الشعار والعبارة يساره وبطاقة الطقس شماله -->
     <header class="main-header">
         <div class="header-brand-side">
             <!-- اللوجو مع تأثير النبض والإضاءة اللولبية المستمرة -->
@@ -547,15 +547,20 @@
                 </div>
             </div>
         </div>
+
+        <!-- مكان استقبال بطاقة الطقس الحية من index.html -->
+        <div class="header-weather-slot">
+            {% block header_weather %}{% endblock %}
+        </div>
     </header>
 
-    <!-- الأقسام التفاعلية (تم توحيد أسماء الفئات برمجياً) -->
+    <!-- الأقسام التفاعلية (مع دعم الحالتين للاقتصاد: إقتصادية / اقتصادية) -->
     <nav class="navbar">
         <ul class="nav-container">
             <li><a href="/" class="nav-link {% if not current_category %}active{% endif %}">الرئيسية</a></li>
             <li><a href="/?category=سياسية" class="nav-link {% if current_category=='سياسية' %}active{% endif %}">أخبار سياسية</a></li>
             <li><a href="/?category=اجتماعية" class="nav-link {% if current_category=='اجتماعية' %}active{% endif %}">أخبار اجتماعية</a></li>
-            <li><a href="/?category=اقتصادية" class="nav-link {% if current_category=='اقتصادية' %}active{% endif %}">اقتصادية</a></li>
+            <li><a href="/?category=إقتصادية" class="nav-link {% if current_category=='إقتصادية' or current_category=='اقتصادية' %}active{% endif %}">اقتصادية</a></li>
             <li><a href="/?category=رياضية" class="nav-link {% if current_category=='رياضية' %}active{% endif %}">رياضية</a></li>
         </ul>
     </nav>
@@ -584,7 +589,7 @@
                 <ul class="footer-links">
                     <li><a href="/?category=سياسية">الأخبار السياسية</a></li>
                     <li><a href="/?category=اجتماعية">الأخبار الاجتماعية</a></li>
-                    <li><a href="/?category=اقتصادية">اقتصادية</a></li>
+                    <li><a href="/?category=إقتصادية">اقتصادية</a></li>
                     <li><a href="/?category=رياضية">رياضية</a></li>
                 </ul>
             </div>
