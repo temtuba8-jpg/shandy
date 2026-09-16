@@ -88,7 +88,7 @@ def init_db():
             );
         ''')
 
-        # حساب المدير الافتراضي
+        # حساب المدير الافتراضي الرئيسي
         cursor.execute("SELECT * FROM managers WHERE username = %s;", ('admin',))
         if not cursor.fetchone():
             cursor.execute(
@@ -572,13 +572,18 @@ def delete_news(news_id):
     return redirect(url_for('admin_dashboard'))
 
 # ==============================================================================
-# إدارة المشرفين ومتابعة مساهماتهم وتعديل كلمات المرور وحذفهم
+# إدارة المشرفين ومتابعة مساهماتهم (محصورة فقط بالمدير العام super_admin)
 # ==============================================================================
 
 @app.route('/admin/managers', methods=['GET', 'POST'])
 def manage_managers():
     if not session.get('logged_in'):
         return redirect(url_for('admin_login'))
+    
+    # التحقق الأمني: حظر أي مشرف عادي من فتح الصفحة
+    if session.get('role') != 'super_admin':
+        flash('عذراً، الوصول لصفحة إدارة المشرفين متاح للمدير العام فقط!')
+        return redirect(url_for('admin_dashboard'))
     
     conn = get_db()
     cursor = conn.cursor()
@@ -610,11 +615,12 @@ def manage_managers():
     cursor.close()
     return render_template('admin_managers.html', managers=managers)
 
-# مسار إعادة تعيين وتغيير كلمة سر المشرف
+# مسار إعادة تعيين وتغيير كلمة سر المشرف (محمي للمدير العام فقط)
 @app.route('/admin/managers/reset-password/<int:manager_id>', methods=['POST'])
 def reset_manager_password(manager_id):
-    if not session.get('logged_in'):
-        return redirect(url_for('admin_login'))
+    if not session.get('logged_in') or session.get('role') != 'super_admin':
+        flash('غير مصرح لك بتغيير كلمات سر المشرفين!')
+        return redirect(url_for('admin_dashboard'))
 
     new_pwd = request.form.get('new_password', '').strip()
     if not new_pwd:
@@ -629,11 +635,12 @@ def reset_manager_password(manager_id):
     flash('تم تحديث كلمة المرور للمشرف بنجاح!')
     return redirect(url_for('manage_managers'))
 
-# مسار حذف المشرف
+# مسار حذف المشرف (محمي للمدير العام فقط مع منع حذف الحساب الرئيسي)
 @app.route('/admin/managers/delete/<int:manager_id>')
 def delete_manager(manager_id):
-    if not session.get('logged_in'):
-        return redirect(url_for('admin_login'))
+    if not session.get('logged_in') or session.get('role') != 'super_admin':
+        flash('غير مصرح لك بحذف المشرفين!')
+        return redirect(url_for('admin_dashboard'))
 
     conn = get_db()
     cursor = conn.cursor()
