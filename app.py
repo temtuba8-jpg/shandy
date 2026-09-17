@@ -30,10 +30,7 @@ def upload_image_to_imgbb(file_storage):
         if not file_storage or file_storage.filename == '':
             return ''
         
-        # قراءة محتوى الملف
         file_bytes = file_storage.read()
-        
-        # إرسال الصورة إلى ImgBB API
         url = "https://api.imgbb.com/1/upload"
         payload = {
             "key": IMGBB_API_KEY
@@ -46,7 +43,6 @@ def upload_image_to_imgbb(file_storage):
         result = response.json()
         
         if result.get("success"):
-            # إرجاع الرابط المباشر والدائم للصورة
             return result["data"]["url"]
     except Exception as e:
         print("ImgBB Upload Error:", e)
@@ -98,7 +94,6 @@ def slugify_filter(s):
 def image_src_filter(img_val):
     if not img_val:
         return url_for('static', filename='uploads/logo.png')
-    # إذا كانت الصورة رابط خارجي (مثل ImgBB) نعيد الرابط مباشرة
     if str(img_val).startswith('http://') or str(img_val).startswith('https://'):
         return img_val
     if str(img_val).startswith('data:image'):
@@ -120,7 +115,7 @@ def format_date_filter(val):
 @app.route('/news-image/<news_id>')
 def serve_news_image(news_id):
     try:
-        clean_id = news_id.lstrip('-')
+        clean_id = news_id.split('-')[0].lstrip('-')
         news_item = None
         if ObjectId.is_valid(clean_id):
             news_item = db.news.find_one({"_id": ObjectId(clean_id)})
@@ -129,7 +124,6 @@ def serve_news_image(news_id):
 
         if news_item and news_item.get('image'):
             img_val = news_item['image']
-            # إذا كان رابط خارجي، تحويل المستخدم إليه مباشرة
             if str(img_val).startswith('http://') or str(img_val).startswith('https://'):
                 return redirect(img_val)
             if str(img_val).startswith('data:image'):
@@ -185,13 +179,15 @@ def index():
                            slider_news=slider_news, current_category=category,
                            page=page, total_pages=total_pages)
 
-# صفحة تفاصيل الخبر الكاملة
+# صفحة تفاصيل الخبر الكاملة (تم إصلاح استخراج الـ ID هنا بدقة)
 @app.route('/news/<news_id>')
 @app.route('/news/<news_id>-<slug>')
 def news_detail(news_id, slug=None):
     try:
-        clean_id = news_id.lstrip('-')
+        # استخراج المعرف الأساسي قبل أي شرطة أو عنوان slug مضاف
+        clean_id = news_id.split('-')[0].lstrip('-')
         news_item = None
+        
         if ObjectId.is_valid(clean_id):
             news_item = db.news.find_one({"_id": ObjectId(clean_id)})
         if not news_item:
@@ -294,7 +290,7 @@ def admin_login():
         if manager and check_password_hash(manager['password'], pwd):
             session['logged_in'] = True
             session['username'] = manager['username']
-            session['role'] = manager['role']
+            session['role'] = manager.get('role', 'admin')
             return redirect(url_for('admin_dashboard'))
         flash('اسم المستخدم أو كلمة المرور غير صحيحة')
     return render_template('login.html')
@@ -373,7 +369,6 @@ def add_news():
     if 'image' in request.files:
         file = request.files['image']
         if file.filename != '':
-            # رفع الصورة تلقائياً لـ ImgBB والحصول على الرابط الدائم
             image_url = upload_image_to_imgbb(file)
 
     db.news.insert_one({
@@ -445,6 +440,8 @@ def manage_managers():
     if request.method == 'POST':
         new_username = request.form.get('username', '').strip()
         new_password = request.form.get('password', '').strip()
+        new_role = request.form.get('role', 'editor').strip()
+        
         if new_username and new_password:
             if db.managers.find_one({"username": new_username}):
                 flash('اسم المستخدم موجود مسبقاً')
@@ -452,7 +449,7 @@ def manage_managers():
                 db.managers.insert_one({
                     "username": new_username,
                     "password": generate_password_hash(new_password),
-                    "role": "admin"
+                    "role": new_role
                 })
                 flash('تمت إضافة المشرف بنجاح')
         else:
@@ -465,7 +462,7 @@ def manage_managers():
         managers.append({
             "id": str(m['_id']),
             "username": m['username'],
-            "role": m.get('role', 'admin'),
+            "role": m.get('role', 'editor'),
             "news_count": count
         })
 
