@@ -2,6 +2,7 @@ import os
 import base64
 import io
 import re
+import requests
 from datetime import datetime, timedelta
 from flask import Flask, render_template, render_template_string, request, redirect, url_for, session, flash, Response, send_file
 from werkzeug.utils import secure_filename
@@ -15,10 +16,41 @@ UPLOAD_FOLDER = os.path.join('static', 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
+# مفتاح ImgBB API الخاص بك
+IMGBB_API_KEY = '85c7ff6f1e72c472683b7ac998a05e38'
+
 # رابط قاعدة البيانات (MongoDB Atlas)
 MONGO_URI = "mongodb+srv://shendi_admin:Fad%400911923356@khloosa.s4zdyr6.mongodb.net/?appName=khloosa"
 client = MongoClient(MONGO_URI)
 db = client.shendi_news_db  
+
+# دالة مساعدة لرفع الصور إلى ImgBB تلقائياً
+def upload_image_to_imgbb(file_storage):
+    try:
+        if not file_storage or file_storage.filename == '':
+            return ''
+        
+        # قراءة محتوى الملف
+        file_bytes = file_storage.read()
+        
+        # إرسال الصورة إلى ImgBB API
+        url = "https://api.imgbb.com/1/upload"
+        payload = {
+            "key": IMGBB_API_KEY
+        }
+        files = {
+            "image": file_bytes
+        }
+        
+        response = requests.post(url, data=payload, files=files, timeout=15)
+        result = response.json()
+        
+        if result.get("success"):
+            # إرجاع الرابط المباشر والدائم للصورة
+            return result["data"]["url"]
+    except Exception as e:
+        print("ImgBB Upload Error:", e)
+    return ''
 
 # تهيئة الحسابات الافتراضية عند التشغيل
 def init_db():
@@ -66,6 +98,9 @@ def slugify_filter(s):
 def image_src_filter(img_val):
     if not img_val:
         return url_for('static', filename='uploads/logo.png')
+    # إذا كانت الصورة رابط خارجي (مثل ImgBB) نعيد الرابط مباشرة
+    if str(img_val).startswith('http://') or str(img_val).startswith('https://'):
+        return img_val
     if str(img_val).startswith('data:image'):
         return img_val
     return url_for('static', filename='uploads/' + str(img_val))
@@ -81,7 +116,7 @@ def format_date_filter(val):
     except Exception:
         return str(val)
 
-# دالة عرض الصور (تدعم المعرفات بمرونة تامة)
+# دالة عرض الصور (تدعم الروابط الخارجية والمحلية)
 @app.route('/news-image/<news_id>')
 def serve_news_image(news_id):
     try:
@@ -94,6 +129,9 @@ def serve_news_image(news_id):
 
         if news_item and news_item.get('image'):
             img_val = news_item['image']
+            # إذا كان رابط خارجي، تحويل المستخدم إليه مباشرة
+            if str(img_val).startswith('http://') or str(img_val).startswith('https://'):
+                return redirect(img_val)
             if str(img_val).startswith('data:image'):
                 try:
                     header, encoded = img_val.split(',', 1)
@@ -147,7 +185,7 @@ def index():
                            slider_news=slider_news, current_category=category,
                            page=page, total_pages=total_pages)
 
-# صفحة تفاصيل الخبر الكاملة (مضبوطة لتعمل بدون أخطاء)
+# صفحة تفاصيل الخبر الكاملة
 @app.route('/news/<news_id>')
 @app.route('/news/<news_id>-<slug>')
 def news_detail(news_id, slug=None):
@@ -167,11 +205,9 @@ def news_detail(news_id, slug=None):
             "_id": {"$ne": news_item['_id']}
         }).sort("created_at", -1).limit(3))
         
-        # يمكنك استخدام ملف HTML خارجي (news_detail.html) أو القالب الداخلي أدناه
         try:
             return render_template('news_detail.html', news=news_item, related=related_news)
         except Exception:
-            # قالب احتياطي مدمج يضمن عدم ظهور خطأ أبداً
             fallback_html = """
             {% extends 'base.html' %}
             {% block title %}{{ news.title }} | صحيفة شندي الإخبارية{% endblock %}
@@ -333,20 +369,18 @@ def add_news():
     in_slider = 1 if 'in_slider' in request.form else 0
     author = session.get('username', 'admin')
 
-    image_filename = ''
+    image_url = ''
     if 'image' in request.files:
         file = request.files['image']
         if file.filename != '':
-            filename = secure_filename(file.filename)
-            image_filename = f"{int(datetime.now().timestamp())}_{filename}"
-            local_path = os.path.join(app.config['UPLOAD_FOLDER'], image_filename)
-            file.save(local_path)
+            # رفع الصورة تلقائياً لـ ImgBB والحصول على الرابط الدائم
+            image_url = upload_image_to_imgbb(file)
 
     db.news.insert_one({
         "title": title,
         "details": details,
         "category": category,
-        "image": image_filename,
+        "image": image_url,
         "color": color,
         "is_breaking": is_breaking,
         "in_slider": in_slider,
@@ -379,11 +413,9 @@ def edit_news(news_id):
 
     if 'image' in request.files and request.files['image'].filename != '':
         file = request.files['image']
-        filename = secure_filename(file.filename)
-        image_filename = f"{int(datetime.now().timestamp())}_{filename}"
-        local_path = os.path.join(app.config['UPLOAD_FOLDER'], image_filename)
-        file.save(local_path)
-        update_data["image"] = image_filename
+        image_url = upload_image_to_imgbb(file)
+        if image_url:
+            update_data["image"] = image_url
 
     try:
         db.news.update_one({"_id": ObjectId(news_id)}, {"$set": update_data})
