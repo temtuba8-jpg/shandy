@@ -15,7 +15,7 @@ UPLOAD_FOLDER = os.path.join('static', 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# رابط قاعدة البيانات الجديدة (MongoDB Atlas) - قم بتغيير <db_password> بكلمة مرور الحساب الخاص بك
+# رابط قاعدة البيانات الجديدة (MongoDB Atlas)
 MONGO_URI = "mongodb+srv://shendi_admin:YOUR_REAL_PASSWORD@khloosa.s4zdyr6.mongodb.net/?appName=khloosa"
 client = MongoClient(MONGO_URI)
 db = client.shendi_news_db  # اسم قاعدة البيانات
@@ -23,7 +23,6 @@ db = client.shendi_news_db  # اسم قاعدة البيانات
 # تهيئة الحسابات والجداول الافتراضية عند التشغيل
 def init_db():
     try:
-        # إنشاء حساب المدير الافتراضي إن لم يكن موجوداً
         admin_user = db.managers.find_one({"username": "admin"})
         if not admin_user:
             db.managers.insert_one({
@@ -39,7 +38,7 @@ try:
 except Exception as e:
     print("Init DB error:", e)
 
-# الحذف التلقائي للأخبار والشريط الإخباري بعد 30 يوماً لتوفير المساحة
+# الحذف التلقائي للأخبار والشريط الإخباري بعد 30 يوماً لتوفير المساحة وسرعة الأداء
 def clean_expired_news():
     try:
         expiry_date = datetime.now() - timedelta(days=30)
@@ -355,7 +354,7 @@ def delete_ticker(ticker_id):
         pass
     return redirect(url_for('admin_dashboard'))
 
-# إضافة خبر (يحفظ اسم الصورة فقط في داتا بيز MongoDB لتوفير كامل المساحة)
+# إضافة خبر
 @app.route('/admin/add-news', methods=['POST'])
 def add_news():
     if not session.get('logged_in'):
@@ -468,7 +467,6 @@ def manage_managers():
         else:
             flash('يرجى تعبئة كافة الحقول بشكل صحيح')
 
-    # جلب المشرفين وحساب عدد الأخبار لكل مشرف
     managers_cursor = db.managers.find().sort("_id", 1)
     managers = []
     for m in managers_cursor:
