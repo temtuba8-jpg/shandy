@@ -3,18 +3,18 @@
 <!-- تخصيص عنوان ووسوم الصفحة لمحركات البحث وشبكات التواصل (معاينة احترافية كالقنوات الإخبارية) -->
 {% block title %}{{ news.title }} | صحيفة شندي الإخبارية{% endblock %}
 {% block meta_desc %}{{ news.details[:160] | replace('\n', ' ') | striptags }}{% endblock %}
-{% block canonical_url %}{{ url_for('news_detail', news_id=news.id, slug=news.title|slugify, _external=True) }}{% endblock %}
+{% block canonical_url %}{{ url_for('news_detail', news_id=news._id, slug=news.title|slugify, _external=True) }}{% endblock %}
 
 {% block og_type %}article{% endblock %}
 {% block og_title %}{{ news.title }}{% endblock %}
 {% block og_desc %}{{ news.details[:160] | replace('\n', ' ') | striptags }}...{% endblock %}
-{% block og_url %}{{ url_for('news_detail', news_id=news.id, slug=news.title|slugify, _external=True) }}{% endblock %}
-{% block og_image %}{{ url_for('serve_news_image', news_id=news.id, _external=True) }}{% endblock %}
+{% block og_url %}{{ url_for('news_detail', news_id=news._id, slug=news.title|slugify, _external=True) }}{% endblock %}
+{% block og_image %}{{ url_for('serve_news_image', news_id=news._id, _external=True) }}{% endblock %}
 {% block og_image_alt %}{{ news.title }}{% endblock %}
 
 {% block tw_title %}{{ news.title }}{% endblock %}
 {% block tw_desc %}{{ news.details[:160] | replace('\n', ' ') | striptags }}...{% endblock %}
-{% block tw_image %}{{ url_for('serve_news_image', news_id=news.id, _external=True) }}{% endblock %}
+{% block tw_image %}{{ url_for('serve_news_image', news_id=news._id, _external=True) }}{% endblock %}
 
 {% block content %}
 <!-- 📰 بيانات هيكلية دقيقة للمقال (Schema.org NewsArticle) لأرشفة Google News 📰 -->
@@ -24,12 +24,12 @@
   "@type": "NewsArticle",
   "mainEntityOfPage": {
     "@type": "WebPage",
-    "@id": "{{ url_for('news_detail', news_id=news.id, slug=news.title|slugify, _external=True) }}"
+    "@id": "{{ url_for('news_detail', news_id=news._id, slug=news.title|slugify, _external=True) }}"
   },
   "headline": {{ news.title | tojson }},
   "description": {{ (news.details[:160] | replace('\n', ' ') | striptags) | tojson }},
   "image": [
-    "{{ url_for('serve_news_image', news_id=news.id, _external=True) }}"
+    "{{ url_for('serve_news_image', news_id=news._id, _external=True) }}"
   ],
   "datePublished": "{{ news.created_at }}",
   "dateModified": "{{ news.created_at }}",
@@ -249,11 +249,11 @@
         <div class="news-card">
             <div class="card-body">
                 <h4 style="margin-bottom:12px;">
-                    <a href="/news/{{ item.id }}-{{ item.title | slugify }}" style="color:var(--text-dark); text-decoration:none; line-height:1.4;">
+                    <a href="/news/{{ item._id }}-{{ item.title | slugify }}" style="color:var(--text-dark); text-decoration:none; line-height:1.4;">
                         {{ item.title }}
                     </a>
                 </h4>
-                <a href="/news/{{ item.id }}-{{ item.title | slugify }}" class="btn-read-more" style="font-size:0.85rem;">
+                <a href="/news/{{ item._id }}-{{ item.title | slugify }}" class="btn-read-more" style="font-size:0.85rem;">
                     قراءة التفاصيل <i class="fas fa-arrow-left"></i>
                 </a>
             </div>
@@ -266,7 +266,7 @@
 <!-- كود تفعيل روابط المشاركة مع تضمين العنوان والملخص والرابط الاحترافي -->
 <script>
     document.addEventListener("DOMContentLoaded", function() {
-        const fullShareUrl = "{{ url_for('news_detail', news_id=news.id, slug=news.title|slugify, _external=True) }}";
+        const fullShareUrl = "{{ url_for('news_detail', news_id=news._id, slug=news.title|slugify, _external=True) }}";
         const rawTitle = {{ news.title | tojson }};
         const rawSummary = {{ (news.details[:120] | replace('\n', ' ') | striptags) | tojson }};
 
@@ -283,7 +283,7 @@
     });
 
     function copyNewsLink() {
-        const fullShareUrl = "{{ url_for('news_detail', news_id=news.id, slug=news.title|slugify, _external=True) }}";
+        const fullShareUrl = "{{ url_for('news_detail', news_id=news._id, slug=news.title|slugify, _external=True) }}";
         navigator.clipboard.writeText(fullShareUrl).then(() => {
             const alertBox = document.getElementById("copyAlert");
             alertBox.style.display = "block";
