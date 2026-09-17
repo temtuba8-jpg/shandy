@@ -1,5 +1,5 @@
 Flask
-Werkzeug
-gunicorn
-psycopg2-binary
 pymongo
+werkzeug
+requests
+gunicorn
