@@ -20,6 +20,7 @@ MONGO_URI = "mongodb+srv://shendi_admin:Fad%400911923356@khloosa.s4zdyr6.mongodb
 client = MongoClient(MONGO_URI)
 db = client.shendi_news_db  
 
+# تهيئة الحسابات الافتراضية عند التشغيل
 def init_db():
     try:
         admin_user = db.managers.find_one({"username": "admin"})
@@ -37,6 +38,7 @@ try:
 except Exception as e:
     print("Init DB error:", e)
 
+# الحذف التلقائي للأخبار القديمة لتوفير المساحة
 def clean_expired_news():
     try:
         expiry_date = datetime.now() - timedelta(days=30)
@@ -49,6 +51,7 @@ def clean_expired_news():
 def auto_clean():
     clean_expired_news()
 
+# دالة تحويل عناوين الأخبار لـ Slug
 def make_slug(text):
     if not text:
         return ""
@@ -78,7 +81,7 @@ def format_date_filter(val):
     except Exception:
         return str(val)
 
-# دالة عرض صورة الخبر السحابية أو المحلية بمرونة تامة
+# دالة عرض الصور (تدعم المعرفات بمرونة تامة)
 @app.route('/news-image/<news_id>')
 def serve_news_image(news_id):
     try:
@@ -111,6 +114,7 @@ def serve_news_image(news_id):
         return send_file(logo_path, mimetype='image/png')
     return '', 404
 
+# الصفحة الرئيسية
 @app.route('/')
 def index():
     category = request.args.get('category')
@@ -143,7 +147,7 @@ def index():
                            slider_news=slider_news, current_category=category,
                            page=page, total_pages=total_pages)
 
-# دالة تفاصيل الخبر المصححة بالكامل لضمان جلب الخبر بدقة
+# صفحة تفاصيل الخبر الكاملة (مضبوطة لتعمل بدون أخطاء)
 @app.route('/news/<news_id>')
 @app.route('/news/<news_id>-<slug>')
 def news_detail(news_id, slug=None):
@@ -163,58 +167,63 @@ def news_detail(news_id, slug=None):
             "_id": {"$ne": news_item['_id']}
         }).sort("created_at", -1).limit(3))
         
-        # قالب تفاصيل الخبر الداخلي الاحترافي المتكامل
-        detail_html = """
-        {% extends 'base.html' %}
-        {% block title %}{{ news.title }} | صحيفة شندي الإخبارية{% endblock %}
-        {% block content %}
-        <div class="container" style="max-width: 900px; margin: 30px auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
-            <div style="margin-bottom: 15px;">
-                <span style="background: var(--primary-red, #dc2626); color: #fff; padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: bold;">{{ news.category }}</span>
-                <span style="color: #64748b; font-size: 14px; margin-right: 15px;"><i class="far fa-clock"></i> {{ news.created_at | format_date }}</span>
-            </div>
-            <h1 style="color: #0f2c59; font-size: 28px; line-height: 1.6; margin-bottom: 20px;">{{ news.title }}</h1>
-            
-            {% if news.image %}
-            <div style="margin-bottom: 25px; text-align: center; background: #08111d; border-radius: 10px; padding: 10px;">
-                <img src="{{ url_for('serve_news_image', news_id=news._id) }}" alt="{{ news.title }}" style="max-width: 100%; max-height: 450px; border-radius: 8px; object-fit: contain;">
-            </div>
-            {% endif %}
-            
-            <div style="font-size: 18px; line-height: 2.2; color: #334155; white-space: pre-line; margin-bottom: 40px;">
-                {{ news.details }}
-            </div>
+        # يمكنك استخدام ملف HTML خارجي (news_detail.html) أو القالب الداخلي أدناه
+        try:
+            return render_template('news_detail.html', news=news_item, related=related_news)
+        except Exception:
+            # قالب احتياطي مدمج يضمن عدم ظهور خطأ أبداً
+            fallback_html = """
+            {% extends 'base.html' %}
+            {% block title %}{{ news.title }} | صحيفة شندي الإخبارية{% endblock %}
+            {% block content %}
+            <div class="container" style="max-width: 900px; margin: 30px auto; background: #fff; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05);">
+                <div style="margin-bottom: 15px;">
+                    <span style="background: var(--primary-red, #dc2626); color: #fff; padding: 5px 12px; border-radius: 20px; font-size: 13px; font-weight: bold;">{{ news.category }}</span>
+                    <span style="color: #64748b; font-size: 14px; margin-right: 15px;"><i class="far fa-clock"></i> {{ news.created_at | format_date }}</span>
+                </div>
+                <h1 style="color: #0f2c59; font-size: 28px; line-height: 1.6; margin-bottom: 20px;">{{ news.title }}</h1>
+                
+                {% if news.image %}
+                <div style="margin-bottom: 25px; text-align: center; background: #08111d; border-radius: 10px; padding: 10px;">
+                    <img src="{{ url_for('serve_news_image', news_id=news._id) }}" alt="{{ news.title }}" style="max-width: 100%; max-height: 450px; border-radius: 8px; object-fit: contain;">
+                </div>
+                {% endif %}
+                
+                <div style="font-size: 18px; line-height: 2.2; color: #334155; white-space: pre-line; margin-bottom: 40px;">
+                    {{ news.details }}
+                </div>
 
-            <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; display: flex; justify-content: space-between; align-items: center; color: #64748b; font-size: 14px;">
-                <span>الكاتب / المصدر: <strong>{{ news.author | default('فريق التحرير') }}</strong></span>
-                <a href="{{ url_for('index') }}" style="background: #0f2c59; color: #fff; padding: 8px 16px; border-radius: 6px; text-decoration: none;">العودة للرئيسية</a>
+                <div style="border-top: 1px solid #e2e8f0; padding-top: 20px; display: flex; justify-content: space-between; align-items: center; color: #64748b; font-size: 14px;">
+                    <span>الكاتب / المصدر: <strong>{{ news.author | default('فريق التحرير') }}</strong></span>
+                    <a href="{{ url_for('index') }}" style="background: #0f2c59; color: #fff; padding: 8px 16px; border-radius: 6px; text-decoration: none;">العودة للرئيسية</a>
+                </div>
             </div>
-        </div>
-        {% endblock %}
-        """
-        return render_template_string(detail_html, news=news_item, related=related_news)
+            {% endblock %}
+            """
+            return render_template_string(fallback_html, news=news_item, related=related_news)
     except Exception as e:
         print("Error in news_detail:", e)
         return "الخبر غير موجود", 404
 
+# الصفحات القانونية والثابتة
 @app.route('/privacy-policy')
 def privacy_policy():
-    return render_template_string("{% extends 'base.html' %}{% block content %}<div class='container' style='padding:40px; background:#fff;'><h1>سياسة الخصوصية</h1><p>نحن نحترم خصوصية زوارنا...</p></div>{% endblock %}")
+    return render_template_string("{% extends 'base.html' %}{% block content %}<div class='container' style='padding:40px; background:#fff; border-radius:10px; margin:30px auto; max-width:900px;'><h1>سياسة الخصوصية</h1><p>نحن نحترم خصوصية زوارنا ونلتزم بحماية بياناتهم...</p></div>{% endblock %}")
 
 @app.route('/terms')
 def terms_of_service():
-    return render_template_string("{% extends 'base.html' %}{% block content %}<div class='container' style='padding:40px; background:#fff;'><h1>شروط الاستخدام</h1><p>يحكم استخدامكم للموقع الشروط والأحكام...</p></div>{% endblock %}")
+    return render_template_string("{% extends 'base.html' %}{% block content %}<div class='container' style='padding:40px; background:#fff; border-radius:10px; margin:30px auto; max-width:900px;'><h1>شروط الاستخدام</h1><p>يحكم استخدامكم لموقع صحيفة شندي هذه الشروط والأحكام...</p></div>{% endblock %}")
 
 @app.route('/about-us')
 def about_us():
-    return render_template_string("{% extends 'base.html' %}{% block content %}<div class='container' style='padding:40px; background:#fff;'><h1>من نحن</h1><p>صحيفة شندي الإخبارية منصة إعلامية...</p></div>{% endblock %}")
+    return render_template_string("{% extends 'base.html' %}{% block content %}<div class='container' style='padding:40px; background:#fff; border-radius:10px; margin:30px auto; max-width:900px;'><h1>من نحن</h1><p>صحيفة شندي الإخبارية منصة إعلامية رقمية مستقلة...</p></div>{% endblock %}")
 
 @app.route('/contact', methods=['GET', 'POST'])
 def contact_us():
     if request.method == 'POST':
-        flash('تم استلام رسالتكم بنجاح!')
+        flash('تم استلام رسالتكم بنجاح! سيتواصل معكم فريق التحرير قريباً.')
         return redirect(url_for('contact_us'))
-    return render_template_string("{% extends 'base.html' %}{% block content %}<div class='container' style='padding:40px; background:#fff;'><h1>اتصل بنا</h1><form method='POST'><button type='submit'>إرسال</button></form></div>{% endblock %}")
+    return render_template_string("{% extends 'base.html' %}{% block content %}<div class='container' style='padding:40px; background:#fff; border-radius:10px; margin:30px auto; max-width:900px;'><h1>اتصل بنا</h1><form method='POST'><button type='submit' style='background:var(--primary-red); color:#fff; padding:10px 20px; border:none; border-radius:6px;'>إرسال الرسالة</button></form></div>{% endblock %}")
 
 @app.route('/ads.txt')
 def ads_txt():
@@ -238,6 +247,8 @@ def sitemap_xml():
     xml.append('</urlset>')
     return Response('\n'.join(xml), mimetype='application/xml')
 
+# ----------------- لوحة التحكم والإدارة (Admin Routes) -----------------
+
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
@@ -250,7 +261,7 @@ def admin_login():
             session['role'] = manager['role']
             return redirect(url_for('admin_dashboard'))
         flash('اسم المستخدم أو كلمة المرور غير صحيحة')
-    return "Login Page"
+    return render_template('login.html')
 
 @app.route('/admin/logout')
 def admin_logout():
@@ -261,7 +272,201 @@ def admin_logout():
 def admin_dashboard():
     if not session.get('logged_in'):
         return redirect(url_for('admin_login'))
-    return "Admin Dashboard"
+
+    search = request.args.get('search', '')
+    author_filter = request.args.get('author', '')
+    page = request.args.get('page', 1, type=int)
+    per_page = 10
+    skip = (page - 1) * per_page
+
+    ticker_items = list(db.ticker_news.find().sort("_id", -1))
+
+    query = {}
+    if search:
+        query["title"] = {"$regex": search, "$options": "i"}
+    if author_filter:
+        query["author"] = author_filter
+
+    total = db.news.count_documents(query)
+    news_list = list(db.news.find(query).sort("created_at", -1).skip(skip).limit(per_page))
+    total_pages = (total + per_page - 1) // per_page
+
+    return render_template('admin_dashboard.html', news_list=news_list, ticker_items=ticker_items,
+                           page=page, total_pages=total_pages, search=search, author_filter=author_filter)
+
+@app.route('/admin/add-ticker', methods=['POST'])
+def add_ticker():
+    if not session.get('logged_in'):
+        return redirect(url_for('admin_login'))
+    text = request.form.get('ticker_text', '').strip()
+    url = request.form.get('ticker_url', '').strip()
+    if text:
+        db.ticker_news.insert_one({
+            "title": text,
+            "url": url,
+            "created_at": datetime.now()
+        })
+        flash('تمت إضافة الخبر إلى الشريط الإخباري بنجاح!')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/delete-ticker/<ticker_id>')
+def delete_ticker(ticker_id):
+    if not session.get('logged_in'):
+        return redirect(url_for('admin_login'))
+    try:
+        db.ticker_news.delete_one({"_id": ObjectId(ticker_id)})
+        flash('تم حذف الخبر من الشريط الإخباري بنجاح')
+    except Exception:
+        pass
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/add-news', methods=['POST'])
+def add_news():
+    if not session.get('logged_in'):
+        return redirect(url_for('admin_login'))
+
+    title = request.form['title']
+    details = request.form['details']
+    category = request.form['category']
+    color = request.form.get('color', '#1f2937')
+    is_breaking = 1 if 'is_breaking' in request.form else 0
+    in_slider = 1 if 'in_slider' in request.form else 0
+    author = session.get('username', 'admin')
+
+    image_filename = ''
+    if 'image' in request.files:
+        file = request.files['image']
+        if file.filename != '':
+            filename = secure_filename(file.filename)
+            image_filename = f"{int(datetime.now().timestamp())}_{filename}"
+            local_path = os.path.join(app.config['UPLOAD_FOLDER'], image_filename)
+            file.save(local_path)
+
+    db.news.insert_one({
+        "title": title,
+        "details": details,
+        "category": category,
+        "image": image_filename,
+        "color": color,
+        "is_breaking": is_breaking,
+        "in_slider": in_slider,
+        "author": author,
+        "created_at": datetime.now()
+    })
+    flash('تم نشر الخبر بنجاح!')
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/edit/<news_id>', methods=['POST'])
+def edit_news(news_id):
+    if not session.get('logged_in'):
+        return redirect(url_for('admin_login'))
+
+    title = request.form['title']
+    details = request.form['details']
+    category = request.form['category']
+    color = request.form.get('color', '#1f2937')
+    is_breaking = 1 if 'is_breaking' in request.form else 0
+    in_slider = 1 if 'in_slider' in request.form else 0
+
+    update_data = {
+        "title": title,
+        "details": details,
+        "category": category,
+        "color": color,
+        "is_breaking": is_breaking,
+        "in_slider": in_slider
+    }
+
+    if 'image' in request.files and request.files['image'].filename != '':
+        file = request.files['image']
+        filename = secure_filename(file.filename)
+        image_filename = f"{int(datetime.now().timestamp())}_{filename}"
+        local_path = os.path.join(app.config['UPLOAD_FOLDER'], image_filename)
+        file.save(local_path)
+        update_data["image"] = image_filename
+
+    try:
+        db.news.update_one({"_id": ObjectId(news_id)}, {"$set": update_data})
+        flash('تم تعديل الخبر بنجاح')
+    except Exception:
+        flash('حدث خطأ أثناء التعديل')
+
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/delete/<news_id>')
+def delete_news(news_id):
+    if not session.get('logged_in'):
+        return redirect(url_for('admin_login'))
+    try:
+        db.news.delete_one({"_id": ObjectId(news_id)})
+        flash('تم حذف الخبر بنجاح')
+    except Exception:
+        pass
+    return redirect(url_for('admin_dashboard'))
+
+@app.route('/admin/managers', methods=['GET', 'POST'])
+def manage_managers():
+    if not session.get('logged_in') or session.get('role') != 'super_admin':
+        flash('عذراً، الوصول لصفحة إدارة المشرفين متاح للمدير العام فقط!')
+        return redirect(url_for('admin_dashboard'))
+
+    if request.method == 'POST':
+        new_username = request.form.get('username', '').strip()
+        new_password = request.form.get('password', '').strip()
+        if new_username and new_password:
+            if db.managers.find_one({"username": new_username}):
+                flash('اسم المستخدم موجود مسبقاً')
+            else:
+                db.managers.insert_one({
+                    "username": new_username,
+                    "password": generate_password_hash(new_password),
+                    "role": "admin"
+                })
+                flash('تمت إضافة المشرف بنجاح')
+        else:
+            flash('يرجى تعبئة كافة الحقول بشكل صحيح')
+
+    managers_cursor = db.managers.find().sort("_id", 1)
+    managers = []
+    for m in managers_cursor:
+        count = db.news.count_documents({"author": m['username']})
+        managers.append({
+            "id": str(m['_id']),
+            "username": m['username'],
+            "role": m.get('role', 'admin'),
+            "news_count": count
+        })
+
+    return render_template('admin_managers.html', managers=managers)
+
+@app.route('/admin/managers/reset-password/<manager_id>', methods=['POST'])
+def reset_manager_password(manager_id):
+    if not session.get('logged_in') or session.get('role') != 'super_admin':
+        return redirect(url_for('admin_dashboard'))
+    new_pwd = request.form.get('new_password', '').strip()
+    if new_pwd:
+        try:
+            db.managers.update_one(
+                {"_id": ObjectId(manager_id)},
+                {"$set": {"password": generate_password_hash(new_pwd)}}
+            )
+            flash('تم تحديث كلمة المرور للمشرف بنجاح!')
+        except Exception:
+            pass
+    return redirect(url_for('manage_managers'))
+
+@app.route('/admin/managers/delete/<manager_id>')
+def delete_manager(manager_id):
+    if not session.get('logged_in') or session.get('role') != 'super_admin':
+        return redirect(url_for('admin_dashboard'))
+    try:
+        manager = db.managers.find_one({"_id": ObjectId(manager_id)})
+        if manager and manager['username'] != 'admin':
+            db.managers.delete_one({"_id": ObjectId(manager_id)})
+            flash(f'تم حذف المشرف {manager["username"]} بنجاح')
+    except Exception:
+        pass
+    return redirect(url_for('manage_managers'))
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
