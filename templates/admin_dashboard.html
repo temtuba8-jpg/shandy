@@ -128,7 +128,6 @@
             </span>
         </div>
         <div style="display:flex; gap:12px; align-items:center;">
-            <!-- لا يظهر هذا الزر إلا للمدير العام فقط -->
             {% if session.role == 'super_admin' %}
             <a href="/admin/managers" class="badge-btn"><i class="fas fa-users-cog"></i> إدارة المشرفين ومتابعتهم</a>
             {% endif %}
@@ -177,7 +176,8 @@
                     <td><strong>{{ t.title }}</strong></td>
                     <td>{{ t.url if t.url else 'بدون رابط' }}</td>
                     <td>
-                        <a href="/admin/delete-ticker/{{ t.id }}" onclick="return confirm('حذف هذا الخبر من الشريط؟')" style="color:#c8102e; text-decoration:none; font-weight:bold;"><i class="fas fa-trash"></i> حذف من الشريط</a>
+                        <!-- تم التعديل هنا إلى t._id -->
+                        <a href="/admin/delete-ticker/{{ t._id }}" onclick="return confirm('حذف هذا الخبر من الشريط؟')" style="color:#c8102e; text-decoration:none; font-weight:bold;"><i class="fas fa-trash"></i> حذف من الشريط</a>
                     </td>
                 </tr>
                 {% else %}
@@ -272,7 +272,8 @@
                 <tr>
                     <td><img src="{{ item.image | image_src }}" width="50" height="40" style="object-fit:cover; border-radius:4px;" alt="صورة مصغرة"></td>
                     <td style="color:{{ item.color }}; font-weight:bold;">
-                        <a href="/news/{{ item.id }}-{{ item.title | slugify }}" target="_blank" style="color:inherit; text-decoration:none;">
+                        <!-- تم التعديل هنا إلى item._id بدلاً من item.id -->
+                        <a href="/news/{{ item._id }}-{{ item.title | slugify }}" target="_blank" style="color:inherit; text-decoration:none;">
                             {{ item.title }}
                         </a>
                     </td>
@@ -284,7 +285,8 @@
                     </td>
                     <td>{{ item.created_at }}</td>
                     <td>
-                        <a href="/admin/delete/{{ item.id }}" onclick="return confirm('هل أنت متأكد من حذف هذا الخبر نهائياً؟')" style="color:#c8102e; font-weight:bold; text-decoration:none;"><i class="fas fa-trash"></i> حذف</a>
+                        <!-- تم التعديل هنا إلى item._id بدلاً من item.id -->
+                        <a href="/admin/delete/{{ item._id }}" onclick="return confirm('هل أنت متأكد من حذف هذا الخبر نهائياً؟')" style="color:#c8102e; font-weight:bold; text-decoration:none;"><i class="fas fa-trash"></i> حذف</a>
                     </td>
                 </tr>
                 {% else %}
