@@ -306,7 +306,7 @@
     <div class="ticker-content">
         <div class="ticker-scroll">
             {% for item in breaking_news %}
-                <a href="{% if item.url %}{{ item.url }}{% else %}/news/{{ item.id }}-{{ item.title | slugify }}{% endif %}" class="ticker-item">
+                <a href="{% if item.url %}{{ item.url }}{% else %}/news/{{ item._id }}-{{ item.title | slugify }}{% endif %}" class="ticker-item">
                     {{ item.title }}
                 </a>
                 <span class="ticker-logo"><i class="fas fa-water"></i> شندي</span>
@@ -324,11 +324,11 @@
 
     {% for slide in slider_news %}
     <div class="slide {% if loop.first %}active{% endif %}">
-        <img src="{{ slide.image | image_src }}" alt="{{ slide.title }}">
+        <img src="{{ url_for('serve_news_image', news_id=slide._id) }}" alt="{{ slide.title }}">
         <div class="slide-caption">
             <span style="background:var(--primary-red); padding:4px 12px; border-radius:4px; font-size:0.85rem; font-weight:bold;">خبر رئيسي</span>
             <h2 style="font-size:1.8rem; margin-top:8px; font-weight:800;">
-                <a href="/news/{{ slide.id }}-{{ slide.title | slugify }}" style="color:#fff; text-decoration:none;">{{ slide.title }}</a>
+                <a href="/news/{{ slide._id }}-{{ slide.title | slugify }}" style="color:#fff; text-decoration:none;">{{ slide.title }}</a>
             </h2>
         </div>
     </div>
@@ -348,18 +348,18 @@
     <div class="news-grid">
         {% for news in news_list %}
         <article class="news-card">
-            <div class="card-img-wrapper">
-                <img src="{{ news.image | image_src }}" alt="صورة خبر: {{ news.title }}" loading="lazy">
-                <div class="card-category-badge">{{ news.category }}</div>
+            <div class="card-img-wrapper" style="background: #0b192c; height: 190px; overflow: hidden; display: flex; align-items: center; justify-content: center; position: relative;">
+                <img src="{{ url_for('serve_news_image', news_id=news._id) }}" alt="صورة خبر: {{ news.title }}" loading="lazy" style="width: 100%; height: 100%; object-fit: cover;">
+                <div class="card-category-badge" style="position: absolute; top: 10px; right: 10px; background: var(--primary-red); color: #fff; padding: 3px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: bold;">{{ news.category }}</div>
             </div>
             <div class="card-body">
                 <h3 class="card-title" style="color: {{ news.color }};">
-                    <a href="/news/{{ news.id }}-{{ news.title | slugify }}" style="color: inherit; text-decoration: none;">{{ news.title }}</a>
+                    <a href="/news/{{ news._id }}-{{ news.title | slugify }}" style="color: inherit; text-decoration: none;">{{ news.title }}</a>
                 </h3>
                 <p class="card-summary">{{ news.details }}</p>
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 10px; border-top: 1px solid #f1f5f9;">
-                    <span style="font-size: 0.8rem; color: #94a3b8;"><i class="far fa-clock"></i> {{ news.created_at }}</span>
-                    <a href="/news/{{ news.id }}-{{ news.title | slugify }}" class="btn-read-more">
+                    <span style="font-size: 0.8rem; color: #94a3b8;"><i class="far fa-clock"></i> {{ news.created_at | format_date }}</span>
+                    <a href="/news/{{ news._id }}-{{ news.title | slugify }}" class="btn-read-more">
                         اقرأ التفاصيل <i class="fas fa-arrow-left"></i>
                     </a>
                 </div>
@@ -452,7 +452,6 @@
     // جلب بيانات الطقس الحية لمدينة شندي وريفي ود حامد
     async function fetchHeaderWeather() {
         try {
-            // استخدام واجهة مجانية لجلب الطقس (مثال إحداثيات شندي/ودحامد)
             const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=16.6917&longitude=33.4342&current=temperature_2m,weather_code');
             const data = await res.json();
             if (data && data.current) {
@@ -467,23 +466,19 @@
                 const cloud = document.getElementById('hCloud');
                 const statusDesc = document.getElementById('hWadStatus');
 
-                // تخصيص الحالة بناءً على كود الطقس أو درجة الحرارة
                 if (wCode >= 50 && wCode <= 67) {
-                    // ممطر
                     box.className = "header-weather-card weather-theme-rain";
                     cloud.style.display = "block";
                     sun.style.display = "none";
                     if (rCanvas) { rCanvas.style.display = "block"; initHeaderRain(); drawHeaderRain(); }
                     statusDesc.innerHTML = '<i class="fas fa-cloud-showers-heavy"></i> أمطار رعدية متوقعة';
                 } else if (temp > 38) {
-                    // حار جداً
                     box.className = "header-weather-card weather-theme-hot";
                     sun.style.display = "block";
                     cloud.style.display = "none";
                     if (rCanvas) rCanvas.style.display = "none";
                     statusDesc.innerHTML = '<i class="fas fa-temperature-high"></i> جو حار ومشمش';
                 } else {
-                    // مشمس / صافي
                     box.className = "header-weather-card weather-theme-sunny";
                     sun.style.display = "block";
                     cloud.style.display = "none";
@@ -522,14 +517,12 @@
         showSlide(currentSlide);
     }
 
-    // التشغيل التلقائي للسلايدر كل 6 ثوانٍ
     setInterval(() => {
         if (slides.length > 1) {
             moveSlide(1);
         }
     }, 6000);
 
-    // تفعيل الوظائف عند اكتمال تحميل الصفحة
     document.addEventListener("DOMContentLoaded", function() {
         fetchHeaderWeather();
     });
