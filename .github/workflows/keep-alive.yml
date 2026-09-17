@@ -1,0 +1,13 @@
+name: Keep Render Alive
+
+on:
+  schedule:
+    - cron: '*/4 * * * *'
+
+jobs:
+  ping-server:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send HTTP request to website
+        run: |
+          curl -I https://shandy-3trx.onrender.com/
