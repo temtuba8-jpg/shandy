@@ -67,7 +67,7 @@ def image_src_filter(img_val):
         return img_val
     return url_for('static', filename='uploads/' + str(img_val))
 
-# فلتر تنسيق التاريخ والوقت بشكل جميل للقارئ بدلاً من الأرقام الخام
+# فلتر تنسيق التاريخ والوقت
 @app.template_filter('format_date')
 def format_date_filter(val):
     if isinstance(val, datetime):
@@ -78,10 +78,17 @@ def format_date_filter(val):
     except Exception:
         return str(val)
 
+# دالة عرض صورة الخبر السحابية أو المحلية بمرونة تامة
 @app.route('/news-image/<news_id>')
 def serve_news_image(news_id):
     try:
-        news_item = db.news.find_one({"_id": ObjectId(news_id)})
+        clean_id = news_id.lstrip('-')
+        news_item = None
+        if ObjectId.is_valid(clean_id):
+            news_item = db.news.find_one({"_id": ObjectId(clean_id)})
+        if not news_item:
+            news_item = db.news.find_one({"_id": clean_id})
+
         if news_item and news_item.get('image'):
             img_val = news_item['image']
             if str(img_val).startswith('data:image'):
@@ -136,19 +143,27 @@ def index():
                            slider_news=slider_news, current_category=category,
                            page=page, total_pages=total_pages)
 
-# صفحة تفاصيل الخبر الكاملة مع تصميم احترافي متجاوب
+# دالة تفاصيل الخبر المصححة بالكامل لضمان جلب الخبر بدقة
 @app.route('/news/<news_id>')
 @app.route('/news/<news_id>-<slug>')
 def news_detail(news_id, slug=None):
     try:
         clean_id = news_id.lstrip('-')
-        news_item = db.news.find_one({"_id": ObjectId(clean_id)})
+        news_item = None
+        if ObjectId.is_valid(clean_id):
+            news_item = db.news.find_one({"_id": ObjectId(clean_id)})
+        if not news_item:
+            news_item = db.news.find_one({"_id": clean_id})
+            
         if not news_item:
             return "الخبر غير موجود أو انتهت صلاحيته", 404
         
-        related_news = list(db.news.find({"category": news_item.get('category'), "_id": {"$ne": ObjectId(clean_id)}}).sort("created_at", -1).limit(3))
+        related_news = list(db.news.find({
+            "category": news_item.get('category'), 
+            "_id": {"$ne": news_item['_id']}
+        }).sort("created_at", -1).limit(3))
         
-        # قالب داخلي لصفحة التفاصيل يمنع أي خطأ في حال نسيان ملف الـ HTML الخاص بها
+        # قالب تفاصيل الخبر الداخلي الاحترافي المتكامل
         detail_html = """
         {% extends 'base.html' %}
         {% block title %}{{ news.title }} | صحيفة شندي الإخبارية{% endblock %}
@@ -161,8 +176,8 @@ def news_detail(news_id, slug=None):
             <h1 style="color: #0f2c59; font-size: 28px; line-height: 1.6; margin-bottom: 20px;">{{ news.title }}</h1>
             
             {% if news.image %}
-            <div style="margin-bottom: 25px; text-align: center;">
-                <img src="{{ url_for('serve_news_image', news_id=news._id) }}" alt="{{ news.title }}" style="max-width: 100%; max-height: 450px; border-radius: 10px; object-fit: cover; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+            <div style="margin-bottom: 25px; text-align: center; background: #08111d; border-radius: 10px; padding: 10px;">
+                <img src="{{ url_for('serve_news_image', news_id=news._id) }}" alt="{{ news.title }}" style="max-width: 100%; max-height: 450px; border-radius: 8px; object-fit: contain;">
             </div>
             {% endif %}
             
@@ -184,52 +199,22 @@ def news_detail(news_id, slug=None):
 
 @app.route('/privacy-policy')
 def privacy_policy():
-    html_content = """
-    {% extends 'base.html' %}
-    {% block title %}سياسة الخصوصية وملفات تعريف الارتباط | صحيفة شندي{% endblock %}
-    {% block content %}
-    <div class="container" style="max-width: 900px; margin: 40px auto; background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); line-height: 2;">
-        <h1 style="color: #0f2c59; border-right: 5px solid var(--primary-red); padding-right: 15px; margin-bottom: 25px;">سياسة الخصوصية وملفات تعريف الارتباط</h1>
-        <p>أهلاً بكم في <strong>صحيفة شندي الإخبارية</strong>. تمثل خصوصية زوارنا أهمية بالغة لنا...</p>
-    </div>
-    {% endblock %}
-    """
-    return render_template_string(html_content)
+    return render_template_string("{% extends 'base.html' %}{% block content %}<div class='container' style='padding:40px; background:#fff;'><h1>سياسة الخصوصية</h1><p>نحن نحترم خصوصية زوارنا...</p></div>{% endblock %}")
 
 @app.route('/terms')
 def terms_of_service():
-    html_content = """
-    {% extends 'base.html' %}
-    {% block title %}اتفاقية وشروط الاستخدام | صحيفة شندي{% endblock %}
-    {% block content %}
-    <div class="container" style="max-width: 900px; margin: 40px auto; background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); line-height: 2;">
-        <h1 style="color: #0f2c59; border-right: 5px solid var(--primary-red); padding-right: 15px; margin-bottom: 25px;">شروط الاستخدام واتفاقية النشر</h1>
-        <p>مرحباً بكم في <strong>صحيفة شندي الإخبارية</strong>...</p>
-    </div>
-    {% endblock %}
-    """
-    return render_template_string(html_content)
+    return render_template_string("{% extends 'base.html' %}{% block content %}<div class='container' style='padding:40px; background:#fff;'><h1>شروط الاستخدام</h1><p>يحكم استخدامكم للموقع الشروط والأحكام...</p></div>{% endblock %}")
 
 @app.route('/about-us')
 def about_us():
-    html_content = """
-    {% extends 'base.html' %}
-    {% block title %}من نحن | صحيفة شندي الإخبارية{% endblock %}
-    {% block content %}
-    <div class="container" style="max-width: 900px; margin: 40px auto; background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); line-height: 2;">
-        <h1 style="color: #0f2c59; border-right: 5px solid var(--primary-red); padding-right: 15px; margin-bottom: 25px;">من نحن - صحيفة شندي الإخبارية</h1>
-        <p><strong>صحيفة شندي الإخبارية</strong> منصة إعلامية رقمية مستقلة...</p>
-    </div>
-    {% endblock %}
-    """
-    return render_template_string(html_content)
+    return render_template_string("{% extends 'base.html' %}{% block content %}<div class='container' style='padding:40px; background:#fff;'><h1>من نحن</h1><p>صحيفة شندي الإخبارية منصة إعلامية...</p></div>{% endblock %}")
 
 @app.route('/contact', methods=['GET', 'POST'])
 def contact_us():
     if request.method == 'POST':
-        flash('تم استلام رسالتكم بنجاح! سيتواصل معكم فريق التحرير قريباً.')
+        flash('تم استلام رسالتكم بنجاح!')
         return redirect(url_for('contact_us'))
-    return "اتصل بنا"
+    return render_template_string("{% extends 'base.html' %}{% block content %}<div class='container' style='padding:40px; background:#fff;'><h1>اتصل بنا</h1><form method='POST'><button type='submit'>إرسال</button></form></div>{% endblock %}")
 
 @app.route('/ads.txt')
 def ads_txt():
@@ -237,8 +222,7 @@ def ads_txt():
 
 @app.route('/robots.txt')
 def robots_txt():
-    content = "User-agent: *\nAllow: /\nDisallow: /admin\n"
-    return Response(content, mimetype='text/plain')
+    return Response("User-agent: *\nAllow: /\nDisallow: /admin\n", mimetype='text/plain')
 
 @app.route('/sitemap.xml')
 def sitemap_xml():
