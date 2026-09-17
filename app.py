@@ -3,11 +3,11 @@ import base64
 import io
 import re
 from datetime import datetime, timedelta
-from flask import Flask, render_template, render_template_string, request, redirect, url_for, session, flash, g, Response, send_file
+from flask import Flask, render_template, render_template_string, request, redirect, url_for, session, flash, Response, send_file
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
-import psycopg2
-from psycopg2.extras import RealDictCursor
+from pymongo import MongoClient
+from bson.objectid import ObjectId
 
 app = Flask(__name__)
 app.secret_key = 'shendi_secret_news_key_2026'
@@ -15,120 +15,44 @@ UPLOAD_FOLDER = os.path.join('static', 'uploads')
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
-# رابط قاعدة البيانات السحابية الدائمة (Neon Tech)
-DATABASE_URL = "postgresql://neondb_owner:npg_Ekpb6L5BPJiM@ep-soft-cake-b4wof47n-pooler.c-6.us-east-2.aws.neon.tech/neondb?sslmode=require"
+# رابط قاعدة البيانات الجديدة (MongoDB Atlas) - قم بتغيير <db_password> بكلمة مرور الحساب الخاص بك
+MONGO_URI = "mongodb+srv://shendi_admin:YOUR_REAL_PASSWORD@khloosa.s4zdyr6.mongodb.net/?appName=khloosa"
+client = MongoClient(MONGO_URI)
+db = client.shendi_news_db  # اسم قاعدة البيانات
 
-def get_db():
-    if 'db' not in g:
-        g.db = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
-    return g.db
-
-@app.teardown_appcontext
-def close_db(error):
-    db = g.pop('db', None)
-    if db is not None:
-        try:
-            if error:
-                db.rollback()
-            db.close()
-        except Exception:
-            pass
-
+# تهيئة الحسابات والجداول الافتراضية عند التشغيل
 def init_db():
     try:
-        conn = psycopg2.connect(DATABASE_URL)
-        cursor = conn.cursor()
-        
-        # جدول المشرفين
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS managers (
-                id SERIAL PRIMARY KEY,
-                username TEXT UNIQUE NOT NULL,
-                password TEXT NOT NULL,
-                role TEXT DEFAULT 'admin'
-            );
-        ''')
-        
-        # جدول الأخبار
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS news (
-                id SERIAL PRIMARY KEY,
-                title TEXT NOT NULL,
-                details TEXT NOT NULL,
-                category TEXT NOT NULL,
-                image TEXT,
-                color TEXT DEFAULT '#1f2937',
-                is_breaking INTEGER DEFAULT 0,
-                in_slider INTEGER DEFAULT 0,
-                author TEXT DEFAULT 'admin',
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        ''')
-
-        # إضافة عمود author إذا كان الجدول منشأ سابقاً بدونه
-        cursor.execute('''
-            DO $$
-            BEGIN
-                IF NOT EXISTS (
-                    SELECT 1 FROM information_schema.columns 
-                    WHERE table_name='news' AND column_name='author'
-                ) THEN
-                    ALTER TABLE news ADD COLUMN author TEXT DEFAULT 'admin';
-                END IF;
-            END $$;
-        ''')
-        
-        # جدول الشريط الإخباري العاجل
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS ticker_news (
-                id SERIAL PRIMARY KEY,
-                title TEXT NOT NULL,
-                url TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            );
-        ''')
-
-        # حساب المدير الافتراضي الرئيسي
-        cursor.execute("SELECT * FROM managers WHERE username = %s;", ('admin',))
-        if not cursor.fetchone():
-            cursor.execute(
-                "INSERT INTO managers (username, password, role) VALUES (%s, %s, %s);",
-                ('admin', generate_password_hash('admin123'), 'super_admin')
-            )
-        conn.commit()
-        cursor.close()
-        conn.close()
+        # إنشاء حساب المدير الافتراضي إن لم يكن موجوداً
+        admin_user = db.managers.find_one({"username": "admin"})
+        if not admin_user:
+            db.managers.insert_one({
+                "username": "admin",
+                "password": generate_password_hash('admin123'),
+                "role": "super_admin"
+            })
     except Exception as e:
-        print("Database Init Alert:", e)
+        print("MongoDB Init Alert:", e)
 
-# تشغيل إنشاء الجداول فوراً عند تحميل التطبيق ليعمل مع Gunicorn على Render
 try:
     init_db()
 except Exception as e:
     print("Init DB error:", e)
 
-# الحذف التلقائي بعد 30 يوماً مع معالجة التراجع عند الخطأ لمنع تعليق المعاملة
+# الحذف التلقائي للأخبار والشريط الإخباري بعد 30 يوماً لتوفير المساحة
 def clean_expired_news():
     try:
-        conn = get_db()
-        cursor = conn.cursor()
         expiry_date = datetime.now() - timedelta(days=30)
-        cursor.execute("DELETE FROM news WHERE created_at < %s;", (expiry_date,))
-        cursor.execute("DELETE FROM ticker_news WHERE created_at < %s;", (expiry_date,))
-        conn.commit()
-        cursor.close()
+        db.news.delete_many({"created_at": {"$lt": expiry_date}})
+        db.ticker_news.delete_many({"created_at": {"$lt": expiry_date}})
     except Exception:
-        if 'db' in g:
-            try:
-                g.db.rollback()
-            except Exception:
-                pass
+        pass
 
 @app.before_request
 def auto_clean():
     clean_expired_news()
 
-# دالة تحويل عنوان الخبر إلى نص مناسب للرابط مثل العربية والجزيرة
+# دالة تحويل عنوان الخبر إلى رابط نصي (Slug)
 def make_slug(text):
     if not text:
         return ""
@@ -139,7 +63,7 @@ def make_slug(text):
 def slugify_filter(s):
     return make_slug(s)
 
-# دالة مساعدة لتحديد مصدر الصورة (سواء كانت Base64 أو مسار مجلد)
+# دالة مصدر الصورة
 @app.template_filter('image_src')
 def image_src_filter(img_val):
     if not img_val:
@@ -148,102 +72,82 @@ def image_src_filter(img_val):
         return img_val
     return url_for('static', filename='uploads/' + str(img_val))
 
-# ==============================================================================
-# 📸 مسار توليد رابط صورة حقيقي ومباشر لظهور الصورة المصغرة في واتساب وفيسبوك
-# ==============================================================================
-@app.route('/news-image/<int:news_id>')
+# عرض صورة الخبر الحقيقية
+@app.route('/news-image/<news_id>')
 def serve_news_image(news_id):
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT image FROM news WHERE id = %s;", (news_id,))
-    row = cursor.fetchone()
-    cursor.close()
+    try:
+        news_item = db.news.find_one({"_id": ObjectId(news_id)})
+        if news_item and news_item.get('image'):
+            img_val = news_item['image']
+            if str(img_val).startswith('data:image'):
+                try:
+                    header, encoded = img_val.split(',', 1)
+                    mime_type = header.split(';')[0].split(':')[1]
+                    data = base64.b64decode(encoded)
+                    return send_file(io.BytesIO(data), mimetype=mime_type)
+                except Exception:
+                    pass
+            else:
+                file_path = os.path.join(app.config['UPLOAD_FOLDER'], str(img_val))
+                if os.path.exists(file_path):
+                    return send_file(file_path)
+    except Exception:
+        pass
 
-    if row and row['image']:
-        img_val = row['image']
-        if str(img_val).startswith('data:image'):
-            try:
-                header, encoded = img_val.split(',', 1)
-                mime_type = header.split(';')[0].split(':')[1]
-                data = base64.b64decode(encoded)
-                return send_file(io.BytesIO(data), mimetype=mime_type)
-            except Exception:
-                pass
-        else:
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], str(img_val))
-            if os.path.exists(file_path):
-                return send_file(file_path)
-
-    # صورة بديلة (الشعار) في حال عدم وجود صورة للخبر
     logo_path = os.path.join(app.config['UPLOAD_FOLDER'], 'logo.png')
     if os.path.exists(logo_path):
         return send_file(logo_path, mimetype='image/png')
     return '', 404
 
-# الصفحة الرئيسية (محدثة لدعم جميع مسميات قسم الاقتصاد بمرونة تامة)
+# الصفحة الرئيسية (مع الدعم المرن لقسم الاقتصاد)
 @app.route('/')
 def index():
     category = request.args.get('category')
     page = request.args.get('page', 1, type=int)
     per_page = 50
-    offset = (page - 1) * per_page
+    skip = (page - 1) * per_page
 
-    conn = get_db()
-    cursor = conn.cursor()
-
-    cursor.execute("SELECT id, title, url, created_at FROM ticker_news ORDER BY id DESC LIMIT 15;")
-    breaking_news = cursor.fetchall()
-    
+    breaking_news = list(db.ticker_news.find().sort("created_at", -1).limit(15))
     if not breaking_news:
-        cursor.execute("SELECT id, title, NULL as url, created_at FROM news WHERE is_breaking = 1 ORDER BY id DESC LIMIT 10;")
-        breaking_news = cursor.fetchall()
+        breaking_news = list(db.news.find({"is_breaking": 1}).sort("created_at", -1).limit(10))
 
-    cursor.execute("SELECT * FROM news WHERE in_slider = 1 ORDER BY id DESC LIMIT 5;")
-    slider_news = cursor.fetchall()
+    slider_news = list(db.news.find({"in_slider": 1}).sort("created_at", -1).limit(5))
 
+    query = {}
     if category:
         if category in ['اقتصادية', 'إقتصادية', 'الشؤون الاقتصادية']:
-            cursor.execute("SELECT COUNT(*) as count FROM news WHERE category ILIKE %s OR category ILIKE %s OR category ILIKE %s;", ('%اقتصاد%', '%إقتصاد%', '%الشؤون الاقتصادية%'))
-            total_news = cursor.fetchone()['count']
-            cursor.execute("SELECT * FROM news WHERE category ILIKE %s OR category ILIKE %s OR category ILIKE %s ORDER BY id DESC LIMIT %s OFFSET %s;", ('%اقتصاد%', '%إقتصاد%', '%الشؤون الاقتصادية%', per_page, offset))
+            query = {"$or": [
+                {"category": {"$regex": "اقتصاد", "$options": "i"}},
+                {"category": {"$regex": "إقتصاد", "$options": "i"}},
+                {"category": "الشؤون الاقتصادية"}
+            ]}
         else:
-            cursor.execute("SELECT COUNT(*) as count FROM news WHERE category = %s;", (category,))
-            total_news = cursor.fetchone()['count']
-            cursor.execute("SELECT * FROM news WHERE category = %s ORDER BY id DESC LIMIT %s OFFSET %s;", (category, per_page, offset))
-    else:
-        cursor.execute("SELECT COUNT(*) as count FROM news;")
-        total_news = cursor.fetchone()['count']
-        cursor.execute("SELECT * FROM news ORDER BY id DESC LIMIT %s OFFSET %s;", (per_page, offset))
+            query = {"category": category}
+
+    total_news = db.news.count_documents(query)
+    news_list = list(db.news.find(query).sort("created_at", -1).skip(skip).limit(per_page))
     
-    news_list = cursor.fetchall()
     total_pages = (total_news + per_page - 1) // per_page
-    cursor.close()
 
     return render_template('index.html', news_list=news_list, breaking_news=breaking_news,
                            slider_news=slider_news, current_category=category,
                            page=page, total_pages=total_pages)
 
 # صفحة تفاصيل الخبر الكاملة
-@app.route('/news/<int:news_id>')
-@app.route('/news/<int:news_id>-<slug>')
+@app.route('/news/<news_id>')
+@app.route('/news/<news_id>-<slug>')
 def news_detail(news_id, slug=None):
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM news WHERE id = %s;", (news_id,))
-    news_item = cursor.fetchone()
-    if not news_item:
-        cursor.close()
-        return "الخبر غير موجود أو انتهت صلاحيته", 404
+    try:
+        news_item = db.news.find_one({"_id": ObjectId(news_id)})
+        if not news_item:
+            return "الخبر غير موجود أو انتهت صلاحيته", 404
         
-    cursor.execute("SELECT * FROM news WHERE category = %s AND id != %s ORDER BY id DESC LIMIT 3;", (news_item['category'], news_id))
-    related_news = cursor.fetchall()
-    cursor.close()
-    return render_template('news_detail.html', news=news_item, related=related_news)
+        related_news = list(db.news.find({"category": news_item['category'], "_id": {"$ne": ObjectId(news_id)}}).sort("created_at", -1).limit(3))
+        return render_template('news_detail.html', news=news_item, related=related_news)
+    except Exception:
+        return "الخبر غير موجود", 404
 
-# ==============================================================================
 # الصفحات القانونية لـ Google AdSense & SEO
-# ==============================================================================
-
 @app.route('/privacy-policy')
 def privacy_policy():
     html_content = """
@@ -257,7 +161,6 @@ def privacy_policy():
         <p>مثل معظم المواقع الإخبارية، نستخدم ملفات السجل لتسجيل معلومات تشمل عناوين بروتوكول الإنترنت (IP)، نوع المتصفح، ومزود الخدمة.</p>
         <h3 style="color: var(--primary-red); margin-top: 25px;">2. ملفات تعريف الارتباط وشبكة Google AdSense</h3>
         <p>نحن نستخدم ملفات تعريف الارتباط (Cookies) لتخزين تفضيلات الزوار. تستخدم شركة Google بصفتها مورداً خارجياً ملفات تعريف الارتباط لعرض الإعلانات على موقعنا وفقاً لاهتمامات المستخدمين عبر تقنية ملف تعريف الارتباط DART التابع لـ Google.</p>
-        <p>يمكن للمستخدمين إلغاء استخدام ملف تعريف الارتباط DART عبر زيارة سياسة الخصوصية الخاصة بإعلانات Google وشبكة المحتوى على الرابط الرسمي لشركة Google.</p>
     </div>
     {% endblock %}
     """
@@ -288,8 +191,6 @@ def about_us():
     <div class="container" style="max-width: 900px; margin: 40px auto; background: #fff; padding: 40px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); line-height: 2;">
         <h1 style="color: #0f2c59; border-right: 5px solid var(--primary-red); padding-right: 15px; margin-bottom: 25px;">من نحن - صحيفة شندي الإخبارية</h1>
         <p><strong>صحيفة شندي الإخبارية</strong> هي منصة إعلامية رقمية مستقلة وشاملة، انطلقت لتكون صوتاً حراً والمعبراً عن مدينة شندي وولاية نهر النيل وعموم السودان، تنقل الخبر بمهنية، دقة، وموضوعية غير منحازة.</p>
-        <h3 style="color: var(--primary-red); margin-top: 25px;">رؤيتنا الإعلامية</h3>
-        <p>أن نكون المصدر الإخباري الأول والموثوق الذي يربط أبناء شندي وولاية نهر النيل في الداخل والمهاجر بأرض الوطن، وتقديم محتوى صحفي يرتقي بثقافة وقضايا المجتمع.</p>
     </div>
     {% endblock %}
     """
@@ -356,12 +257,7 @@ def robots_txt():
 
 @app.route('/sitemap.xml')
 def sitemap_xml():
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT id, title, created_at FROM news ORDER BY id DESC LIMIT 500;")
-    news_items = cursor.fetchall()
-    cursor.close()
-
+    news_items = list(db.news.find().sort("created_at", -1).limit(500))
     base_url = request.url_root.rstrip('/')
     xml = ['<?xml version="1.0" encoding="UTF-8"?>']
     xml.append('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">')
@@ -376,26 +272,20 @@ def sitemap_xml():
 
     for item in news_items:
         slug = make_slug(item['title'])
-        news_url = f"{base_url}/news/{item['id']}-{slug}" if slug else f"{base_url}/news/{item['id']}"
+        news_id = str(item['_id'])
+        news_url = f"{base_url}/news/{news_id}-{slug}" if slug else f"{base_url}/news/{news_id}"
         xml.append(f'<url><loc>{news_url}</loc><priority>0.8</priority><changefreq>weekly</changefreq></url>')
 
     xml.append('</urlset>')
     return Response('\n'.join(xml), mimetype='application/xml')
 
-# ==============================================================================
 # لوحة التحكم والإدارة
-# ==============================================================================
-
 @app.route('/admin/login', methods=['GET', 'POST'])
 def admin_login():
     if request.method == 'POST':
         user = request.form['username']
         pwd = request.form['password']
-        conn = get_db()
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM managers WHERE username = %s;", (user,))
-        manager = cursor.fetchone()
-        cursor.close()
+        manager = db.managers.find_one({"username": user})
         
         if manager and check_password_hash(manager['password'], pwd):
             session['logged_in'] = True
@@ -419,38 +309,19 @@ def admin_dashboard():
     author_filter = request.args.get('author', '')
     page = request.args.get('page', 1, type=int)
     per_page = 10
-    offset = (page - 1) * per_page
+    skip = (page - 1) * per_page
 
-    conn = get_db()
-    cursor = conn.cursor()
+    ticker_items = list(db.ticker_news.find().sort("_id", -1))
 
-    cursor.execute("SELECT * FROM ticker_news ORDER BY id DESC;")
-    ticker_items = cursor.fetchall()
-
-    query_conditions = []
-    params = []
-
+    query = {}
     if search:
-        query_conditions.append("title ILIKE %s")
-        params.append(f'%{search}%')
+        query["title"] = {"$regex": search, "$options": "i"}
     if author_filter:
-        query_conditions.append("author = %s")
-        params.append(author_filter)
+        query["author"] = author_filter
 
-    where_clause = ""
-    if query_conditions:
-        where_clause = "WHERE " + " AND ".join(query_conditions)
-
-    count_query = f"SELECT COUNT(*) as count FROM news {where_clause};"
-    cursor.execute(count_query, tuple(params))
-    total = cursor.fetchone()['count']
-
-    fetch_query = f"SELECT * FROM news {where_clause} ORDER BY id DESC LIMIT %s OFFSET %s;"
-    cursor.execute(fetch_query, tuple(params + [per_page, offset]))
-
-    news_list = cursor.fetchall()
+    total = db.news.count_documents(query)
+    news_list = list(db.news.find(query).sort("created_at", -1).skip(skip).limit(per_page))
     total_pages = (total + per_page - 1) // per_page
-    cursor.close()
 
     return render_template('admin_dashboard.html', news_list=news_list, ticker_items=ticker_items,
                            page=page, total_pages=total_pages, search=search, author_filter=author_filter)
@@ -464,28 +335,27 @@ def add_ticker():
     url = request.form.get('ticker_url', '').strip()
 
     if text:
-        conn = get_db()
-        cursor = conn.cursor()
-        cursor.execute("INSERT INTO ticker_news (title, url) VALUES (%s, %s);", (text, url))
-        conn.commit()
-        cursor.close()
+        db.ticker_news.insert_one({
+            "title": text,
+            "url": url,
+            "created_at": datetime.now()
+        })
         flash('تمت إضافة الخبر إلى الشريط الإخباري بنجاح!')
     return redirect(url_for('admin_dashboard'))
 
-@app.route('/admin/delete-ticker/<int:ticker_id>')
+@app.route('/admin/delete-ticker/<ticker_id>')
 def delete_ticker(ticker_id):
     if not session.get('logged_in'):
         return redirect(url_for('admin_login'))
 
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM ticker_news WHERE id = %s;", (ticker_id,))
-    conn.commit()
-    cursor.close()
-    flash('تم حذف الخبر من الشريط الإخباري بنجاح')
+    try:
+        db.ticker_news.delete_one({"_id": ObjectId(ticker_id)})
+        flash('تم حذف الخبر من الشريط الإخباري بنجاح')
+    except Exception:
+        pass
     return redirect(url_for('admin_dashboard'))
 
-# إضافة خبر مع الحفظ السحابي الدائم للصورة وتوثيق المشرف الكاتب
+# إضافة خبر (يحفظ اسم الصورة فقط في داتا بيز MongoDB لتوفير كامل المساحة)
 @app.route('/admin/add-news', methods=['POST'])
 def add_news():
     if not session.get('logged_in'):
@@ -499,32 +369,31 @@ def add_news():
     in_slider = 1 if 'in_slider' in request.form else 0
     author = session.get('username', 'admin')
 
-    image_data = ''
+    image_filename = ''
     if 'image' in request.files:
         file = request.files['image']
         if file.filename != '':
             filename = secure_filename(file.filename)
-            local_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            image_filename = f"{int(datetime.now().timestamp())}_{filename}"
+            local_path = os.path.join(app.config['UPLOAD_FOLDER'], image_filename)
             file.save(local_path)
-            
-            with open(local_path, "rb") as image_file:
-                encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
-                mime_type = file.content_type if file.content_type else 'image/jpeg'
-                image_data = f"data:{mime_type};base64,{encoded_string}"
 
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute('''
-        INSERT INTO news (title, details, category, image, color, is_breaking, in_slider, author)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
-    ''', (title, details, category, image_data, color, is_breaking, in_slider, author))
-    conn.commit()
-    cursor.close()
-    flash('تم نشر الخبر وحفظ الصورة سحابياً بنجاح!')
+    db.news.insert_one({
+        "title": title,
+        "details": details,
+        "category": category,
+        "image": image_filename,
+        "color": color,
+        "is_breaking": is_breaking,
+        "in_slider": in_slider,
+        "author": author,
+        "created_at": datetime.now()
+    })
+    flash('تم نشر الخبر بنجاح!')
     return redirect(url_for('admin_dashboard'))
 
 # تعديل خبر
-@app.route('/admin/edit/<int:news_id>', methods=['POST'])
+@app.route('/admin/edit/<news_id>', methods=['POST'])
 def edit_news(news_id):
     if not session.get('logged_in'):
         return redirect(url_for('admin_login'))
@@ -536,92 +405,84 @@ def edit_news(news_id):
     is_breaking = 1 if 'is_breaking' in request.form else 0
     in_slider = 1 if 'in_slider' in request.form else 0
 
-    conn = get_db()
-    cursor = conn.cursor()
+    update_data = {
+        "title": title,
+        "details": details,
+        "category": category,
+        "color": color,
+        "is_breaking": is_breaking,
+        "in_slider": in_slider
+    }
 
     if 'image' in request.files and request.files['image'].filename != '':
         file = request.files['image']
         filename = secure_filename(file.filename)
-        local_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+        image_filename = f"{int(datetime.now().timestamp())}_{filename}"
+        local_path = os.path.join(app.config['UPLOAD_FOLDER'], image_filename)
         file.save(local_path)
+        update_data["image"] = image_filename
 
-        with open(local_path, "rb") as image_file:
-            encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
-            mime_type = file.content_type if file.content_type else 'image/jpeg'
-            image_data = f"data:{mime_type};base64,{encoded_string}"
+    try:
+        db.news.update_one({"_id": ObjectId(news_id)}, {"$set": update_data})
+        flash('تم تعديل الخبر بنجاح')
+    except Exception:
+        flash('حدث خطأ أثناء التعديل')
 
-        cursor.execute('''
-            UPDATE news SET title=%s, details=%s, category=%s, image=%s, color=%s, is_breaking=%s, in_slider=%s WHERE id=%s;
-        ''', (title, details, category, image_data, color, is_breaking, in_slider, news_id))
-    else:
-        cursor.execute('''
-            UPDATE news SET title=%s, details=%s, category=%s, color=%s, is_breaking=%s, in_slider=%s WHERE id=%s;
-        ''', (title, details, category, color, is_breaking, in_slider, news_id))
-
-    conn.commit()
-    cursor.close()
-    flash('تم تعديل الخبر بنجاح')
     return redirect(url_for('admin_dashboard'))
 
-@app.route('/admin/delete/<int:news_id>')
+@app.route('/admin/delete/<news_id>')
 def delete_news(news_id):
     if not session.get('logged_in'):
         return redirect(url_for('admin_login'))
         
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM news WHERE id = %s;", (news_id,))
-    conn.commit()
-    cursor.close()
-    flash('تم حذف الخبر بنجاح')
+    try:
+        db.news.delete_one({"_id": ObjectId(news_id)})
+        flash('تم حذف الخبر بنجاح')
+    except Exception:
+        pass
     return redirect(url_for('admin_dashboard'))
 
-# ==============================================================================
-# إدارة المشرفين ومتابعة مساهماتهم (محصورة فقط بالمدير العام super_admin)
-# ==============================================================================
-
+# إدارة المشرفين ومتابعة مساهماتهم (خاص بالمدير العام super_admin)
 @app.route('/admin/managers', methods=['GET', 'POST'])
 def manage_managers():
     if not session.get('logged_in'):
         return redirect(url_for('admin_login'))
     
-    # التحقق الأمني: حظر أي مشرف عادي من فتح الصفحة
     if session.get('role') != 'super_admin':
         flash('عذراً، الوصول لصفحة إدارة المشرفين متاح للمدير العام فقط!')
         return redirect(url_for('admin_dashboard'))
-    
-    conn = get_db()
-    cursor = conn.cursor()
 
     if request.method == 'POST':
         new_username = request.form.get('username', '').strip()
         new_password = request.form.get('password', '').strip()
         if new_username and new_password:
-            hashed_pwd = generate_password_hash(new_password)
-            try:
-                cursor.execute("INSERT INTO managers (username, password, role) VALUES (%s, %s, %s);", (new_username, hashed_pwd, 'admin'))
-                conn.commit()
-                flash('تمت إضافة المشرف بنجاح')
-            except psycopg2.IntegrityError:
-                conn.rollback()
+            if db.managers.find_one({"username": new_username}):
                 flash('اسم المستخدم موجود مسبقاً')
+            else:
+                db.managers.insert_one({
+                    "username": new_username,
+                    "password": generate_password_hash(new_password),
+                    "role": "admin"
+                })
+                flash('تمت إضافة المشرف بنجاح')
         else:
             flash('يرجى تعبئة كافة الحقول بشكل صحيح')
 
-    # جلب المشرفين مع إجمالي عدد الأخبار التي نشرها كل مشرف
-    cursor.execute('''
-        SELECT m.id, m.username, m.role, COUNT(n.id) as news_count 
-        FROM managers m 
-        LEFT JOIN news n ON m.username = n.author 
-        GROUP BY m.id, m.username, m.role 
-        ORDER BY m.id ASC;
-    ''')
-    managers = cursor.fetchall()
-    cursor.close()
+    # جلب المشرفين وحساب عدد الأخبار لكل مشرف
+    managers_cursor = db.managers.find().sort("_id", 1)
+    managers = []
+    for m in managers_cursor:
+        count = db.news.count_documents({"author": m['username']})
+        managers.append({
+            "id": str(m['_id']),
+            "username": m['username'],
+            "role": m.get('role', 'admin'),
+            "news_count": count
+        })
+
     return render_template('admin_managers.html', managers=managers)
 
-# مسار إعادة تعيين وتغيير كلمة سر المشرف (محمي للمدير العام فقط)
-@app.route('/admin/managers/reset-password/<int:manager_id>', methods=['POST'])
+@app.route('/admin/managers/reset-password/<manager_id>', methods=['POST'])
 def reset_manager_password(manager_id):
     if not session.get('logged_in') or session.get('role') != 'super_admin':
         flash('غير مصرح لك بتغيير كلمات سر المشرفين!')
@@ -632,40 +493,33 @@ def reset_manager_password(manager_id):
         flash('يرجى كتابة كلمة المرور الجديدة')
         return redirect(url_for('manage_managers'))
 
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("UPDATE managers SET password = %s WHERE id = %s;", (generate_password_hash(new_pwd), manager_id))
-    conn.commit()
-    cursor.close()
-    flash('تم تحديث كلمة المرور للمشرف بنجاح!')
+    try:
+        db.managers.update_one(
+            {"_id": ObjectId(manager_id)},
+            {"$set": {"password": generate_password_hash(new_pwd)}}
+        )
+        flash('تم تحديث كلمة المرور للمشرف بنجاح!')
+    except Exception:
+        pass
     return redirect(url_for('manage_managers'))
 
-# مسار حذف المشرف (محمي للمدير العام فقط مع منع حذف الحساب الرئيسي)
-@app.route('/admin/managers/delete/<int:manager_id>')
+@app.route('/admin/managers/delete/<manager_id>')
 def delete_manager(manager_id):
     if not session.get('logged_in') or session.get('role') != 'super_admin':
         flash('غير مصرح لك بحذف المشرفين!')
         return redirect(url_for('admin_dashboard'))
 
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT username, role FROM managers WHERE id = %s;", (manager_id,))
-    manager = cursor.fetchone()
-
-    if not manager:
-        cursor.close()
-        flash('المشرف غير موجود')
-        return redirect(url_for('manage_managers'))
-
-    if manager['username'] == 'admin' or manager['role'] == 'super_admin':
-        cursor.close()
-        flash('لا يمكن حذف حساب الإدارة الرئيسي (admin)!')
-        return redirect(url_for('manage_managers'))
-
-    cursor.execute("DELETE FROM managers WHERE id = %s;", (manager_id,))
-    conn.commit()
-    cursor.close()
-    flash(f'تم حذف المشرف {manager["username"]} بنجاح')
+    try:
+        manager = db.managers.find_one({"_id": ObjectId(manager_id)})
+        if manager:
+            if manager['username'] == 'admin' or manager.get('role') == 'super_admin':
+                flash('لا يمكن حذف حساب الإدارة الرئيسي (admin)!')
+                return redirect(url_for('manage_managers'))
+            
+            db.managers.delete_one({"_id": ObjectId(manager_id)})
+            flash(f'تم حذف المشرف {manager["username"]} بنجاح')
+    except Exception:
+        pass
     return redirect(url_for('manage_managers'))
 
 if __name__ == '__main__':
