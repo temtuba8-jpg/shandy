@@ -30,7 +30,7 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # IMGBB_API_KEY
 # =========================================================
 
-IMGBB_API_KEY = os.environ.get("IMGBB_API_KEY", "")
+IMGBB_API_KEY = '85c7ff6f1e72c472683b7ac998a05e38'
 
 # =========================================================
 # رابط MongoDB Atlas
@@ -38,7 +38,7 @@ IMGBB_API_KEY = os.environ.get("IMGBB_API_KEY", "")
 # MONGO_URI
 # =========================================================
 
-MONGO_URI = os.environ.get("MONGO_URI", "")
+MONGO_URI = "mongodb+srv://shendi_admin:Fad%400911923356@khloosa.s4zdyr6.mongodb.net/?appName=khloosa" client = MongoClient(MONGO_URI) db = client.shendi_news_db
 
 # الاتصال بقاعدة البيانات
 client = MongoClient(MONGO_URI)
