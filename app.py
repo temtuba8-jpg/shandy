@@ -1,4 +1,3 @@
-
 import os
 import base64
 import io
@@ -38,7 +37,7 @@ IMGBB_API_KEY = '85c7ff6f1e72c472683b7ac998a05e38'
 # MONGO_URI
 # =========================================================
 
-MONGO_URI = "mongodb+srv://shendi_admin:Fad%400911923356@khloosa.s4zdyr6.mongodb.net/?appName=khloosa" client = MongoClient(MONGO_URI) db = client.shendi_news_db
+MONGO_URI = "mongodb+srv://shendi_admin:Fad%400911923356@khloosa.s4zdyr6.mongodb.net/?appName=khloosa"
 
 # الاتصال بقاعدة البيانات
 client = MongoClient(MONGO_URI)
@@ -1474,4 +1473,3 @@ if __name__ == '__main__':
         port=port,
         debug=False
     )
-
