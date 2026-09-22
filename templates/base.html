@@ -3,54 +3,85 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}صحيفة شندي الإخبارية | نبض نهر النيل وعروس الشمال{% endblock %}</title>
 
-    <!-- 🌐 وسوم Google SEO الأساسية للظهور الفوري في البحث 🌐 -->
-    <meta name="description" content="{% block meta_desc %}صحيفة شندي الإخبارية - الموقع الإخباري الرائد لتغطية أحداث مدينة شندي وولاية نهر النيل لحظة بلحظة: سياسة، مجتمع، ثقافة، فنون، ورياضة.{% endblock %}">
-    <meta name="keywords" content="صحيفة شندي, جريدة شندي, اخبار شندي, شندي اليوم, ولاية نهر النيل, اخبار السودان, نهر النيل, عطبرة, الدامر, بربر, المتمة, ريفي ودحامد">
+    <!-- عنوان الصفحة -->
+    <title>{% block title %}صحيفة شندي الإخبارية | أخبار شندي ونهر النيل والسودان{% endblock %}</title>
+
+    <!-- 🌐 وسوم Google SEO الأساسية -->
+    <meta name="description" content="{% block meta_desc %}صحيفة شندي الإخبارية - أخبار شندي وولاية نهر النيل والسودان لحظة بلحظة، مع تغطية سياسية واجتماعية واقتصادية ورياضية ومجتمعية.{% endblock %}">
+
+    <meta name="keywords" content="صحيفة شندي, جريدة شندي, اخبار شندي, شندي اليوم, أخبار شندي, ولاية نهر النيل, اخبار السودان, السودان اليوم, نهر النيل, عطبرة, الدامر, بربر, المتمة, ريفي ودحامد">
+
     <meta name="author" content="هيئة تحرير صحيفة شندي">
+
+    <!-- السماح لمحركات البحث بفهرسة الموقع -->
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+
+    <!-- Canonical -->
     <link rel="canonical" href="{% block canonical_url %}{{ request.base_url }}{% endblock %}">
 
-    <!-- أيقونة الموقع (Favicon) لقوقل والمتصفحات -->
+    <!-- 🌐 معلومات إضافية لمحركات البحث -->
+    <meta name="theme-color" content="#091a33">
+    <meta name="language" content="Arabic">
+    <meta name="geo.region" content="SD-NR">
+    <meta name="geo.placename" content="Shendi, River Nile State, Sudan">
+
+    <!-- أيقونة الموقع -->
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='uploads/logo.png') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='uploads/logo.png') }}">
 
-    <!-- 🔗 وسوم المعاينة الديناميكية لشبكات التواصل (Open Graph / Facebook / WhatsApp) 🔗 -->
+    <!-- 🔗 Open Graph / Facebook / WhatsApp -->
     <meta property="og:locale" content="ar_AR">
     <meta property="og:type" content="{% block og_type %}website{% endblock %}">
     <meta property="og:site_name" content="صحيفة شندي الإخبارية">
-    <meta property="og:title" content="{% block og_title %}صحيفة شندي الإخبارية | نبض نهر النيل{% endblock %}">
-    <meta property="og:description" content="{% block og_desc %}المصدر الأول لتغطية أخبار مدينة شندي وولاية نهر النيل على مدار الساعة.{% endblock %}">
-    <meta property="og:url" content="{% block og_url %}{{ request.base_url }}{% endblock %}">
-    <meta property="og:image" content="{% block og_image %}{{ url_for('static', filename='uploads/logo.png', _external=True) }}{% endblock %}">
-    <meta property="og:image:alt" content="{% block og_image_alt %}صحيفة شندي الإخبارية{% endblock %}">
 
-    <!-- 🐦 بطاقات Twitter / X 🐦 -->
+    <meta property="og:title" content="{% block og_title %}صحيفة شندي الإخبارية | أخبار شندي ونهر النيل{% endblock %}">
+
+    <meta property="og:description" content="{% block og_desc %}أحدث أخبار مدينة شندي وولاية نهر النيل والسودان على مدار الساعة.{% endblock %}">
+
+    <meta property="og:url" content="{% block og_url %}{{ request.base_url }}{% endblock %}">
+
+    <meta property="og:image" content="{% block og_image %}{{ url_for('static', filename='uploads/logo.png', _external=True) }}{% endblock %}">
+
+    <meta property="og:image:alt" content="{% block og_image_alt %}شعار صحيفة شندي الإخبارية{% endblock %}">
+
+    <meta property="og:image:type" content="image/png">
+
+    <!-- 🐦 Twitter / X -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="{% block tw_title %}صحيفة شندي الإخبارية{% endblock %}">
-    <meta name="twitter:description" content="{% block tw_desc %}أحدث الأخبار والتقارير من شندي ونهر النيل.{% endblock %}">
+
+    <meta name="twitter:title" content="{% block tw_title %}صحيفة شندي الإخبارية | أخبار شندي ونهر النيل{% endblock %}">
+
+    <meta name="twitter:description" content="{% block tw_desc %}أحدث الأخبار والتقارير من شندي وولاية نهر النيل والسودان.{% endblock %}">
+
     <meta name="twitter:image" content="{% block tw_image %}{{ url_for('static', filename='uploads/logo.png', _external=True) }}{% endblock %}">
 
-    <!-- 📊 البيانات الهيكلية لمحرك بحث قوقل (Schema.org / JSON-LD) 📊 -->
+    <meta name="twitter:image:alt" content="صحيفة شندي الإخبارية">
+
+    <!-- ========================================================= -->
+    <!-- 📊 البيانات المنظمة الرئيسية للموقع -->
+    <!-- ========================================================= -->
+
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "NewsMediaOrganization",
       "name": "صحيفة شندي الإخبارية",
-      "alternateName": ["جريدة شندي", "شندي نيوز"],
-      "url": "{{ request.url_root }}",
-      "logo": "{{ url_for('static', filename='uploads/logo.png', _external=True) }}",
-      "sameAs": [
-        "https://facebook.com",
-        "https://twitter.com"
+      "alternateName": [
+        "جريدة شندي",
+        "شندي نيوز",
+        "صحيفة شندي"
       ],
-      "contactPoint": {
-        "@type": "ContactPoint",
-        "telephone": "+249123456789",
-        "contactType": "editorial office",
-        "areaServed": "SD",
-        "availableLanguage": "Arabic"
+      "url": "{{ request.url_root }}",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "{{ url_for('static', filename='uploads/logo.png', _external=True) }}"
+      },
+      "description": "صحيفة إلكترونية إخبارية تغطي أخبار مدينة شندي وولاية نهر النيل والسودان.",
+      "inLanguage": "ar",
+      "areaServed": {
+        "@type": "AdministrativeArea",
+        "name": "ولاية نهر النيل"
       },
       "address": {
         "@type": "PostalAddress",
@@ -61,20 +92,48 @@
     }
     </script>
 
-    <!-- استدعاء خط القاهرة وأيقونات FontAwesome -->
+    <!-- ========================================================= -->
+    <!-- 🌐 تعريف الموقع لمحركات البحث -->
+    <!-- ========================================================= -->
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "صحيفة شندي الإخبارية",
+      "alternateName": "جريدة شندي",
+      "url": "{{ request.url_root }}",
+      "inLanguage": "ar"
+    }
+    </script>
+
+    <!-- ========================================================= -->
+    <!-- 📰 هوية الموقع -->
+    <!-- ========================================================= -->
+
+    <meta property="article:publisher" content="صحيفة شندي الإخبارية">
+    <meta property="article:section" content="أخبار شندي">
+    <meta property="article:tag" content="شندي">
+    <meta property="article:tag" content="نهر النيل">
+    <meta property="article:tag" content="السودان">
+
+    <!-- استدعاء خط القاهرة -->
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
+
         :root {
-            --primary-red: #c8102e;        /* أحمر إخباري جذاب */
+            --primary-red: #c8102e;
             --dark-red: #900c1e;
-            --nile-blue: #0f2c59;        /* كحلي نيلي عميق */
+            --nile-blue: #0f2c59;
             --light-bg: #f8fafc;
             --card-bg: #ffffff;
             --text-dark: #1e293b;
             --text-muted: #64748b;
-            --gold-accent: #f59e0b;       /* ذهبي أصيل */
+            --gold-accent: #f59e0b;
         }
 
         * {
@@ -101,7 +160,7 @@
             align-items: center;
         }
 
-        /* الهيدر الرئيسي مع الشعار والعبارة يساره وحالة الطقس شمالاً */
+        /* الهيدر الرئيسي */
         .main-header {
             background: linear-gradient(135deg, #091a33, #040c18);
             padding: 12px 5%;
@@ -120,7 +179,7 @@
             gap: 20px;
         }
 
-        /* حاوية الشعار مع تأثير النبض المستمر */
+        /* حاوية الشعار */
         .logo-container {
             position: relative;
             display: inline-block;
@@ -140,7 +199,7 @@
             filter: drop-shadow(0 2px 8px rgba(0,0,0,0.4));
         }
 
-        /* تأثير شعاع الضوء اللولبي */
+        /* تأثير شعاع الضوء */
         .logo-container::after {
             content: '';
             position: absolute;
@@ -148,26 +207,31 @@
             left: -160%;
             width: 75%;
             height: 100%;
+
             background: linear-gradient(
                 90deg, 
                 rgba(255, 255, 255, 0) 0%, 
                 rgba(255, 255, 255, 0.7) 50%, 
                 rgba(255, 255, 255, 0) 100%
             );
+
             transform: skewX(-25deg);
             pointer-events: none;
             animation: lightLoop 3.2s ease-in-out infinite alternate;
         }
 
         @keyframes shendiPulse {
+
             0% {
                 transform: scale(1);
                 filter: drop-shadow(0 0 0px rgba(200, 16, 46, 0));
             }
+
             50% {
                 transform: scale(1.035);
                 filter: drop-shadow(0 0 16px rgba(200, 16, 46, 0.8));
             }
+
             100% {
                 transform: scale(1);
                 filter: drop-shadow(0 0 0px rgba(200, 16, 46, 0));
@@ -175,11 +239,17 @@
         }
 
         @keyframes lightLoop {
-            0% { left: -160%; }
-            100% { left: 170%; }
+
+            0% {
+                left: -160%;
+            }
+
+            100% {
+                left: 170%;
+            }
         }
 
-        /* نص شندي حورية جمال نهر النيل */
+        /* نص شندي */
         .header-slogan {
             color: #ffffff;
             display: flex;
@@ -246,18 +316,20 @@
             white-space: nowrap;
         }
 
-        .nav-link:hover, .nav-link.active {
+        .nav-link:hover,
+        .nav-link.active {
             background: var(--primary-red);
             color: #fff;
         }
 
-        /* 📢 مساحة إعلانية علوية متوافقة مع قوقل أدسنس (Leaderboard Banner) 📢 */
+        /* مساحة إعلانية */
         .ads-container {
             max-width: 1200px;
             margin: 15px auto 5px;
             padding: 0 15px;
             text-align: center;
         }
+
         .ad-banner-box {
             background: #f1f5f9;
             border: 1px dashed #cbd5e1;
@@ -272,6 +344,7 @@
             font-size: 0.85rem;
             position: relative;
         }
+
         .ad-banner-box::before {
             content: 'مساحة إعلانية';
             font-size: 0.72rem;
@@ -358,6 +431,7 @@
             line-height: 1.6;
             margin-bottom: 15px;
             flex-grow: 1;
+
             display: -webkit-box;
             -webkit-line-clamp: 3;
             -webkit-box-orient: vertical;
@@ -398,13 +472,14 @@
             font-weight: bold;
         }
 
-        .page-btn.active, .page-btn:hover {
+        .page-btn.active,
+        .page-btn:hover {
             background: var(--primary-red);
             color: #fff;
             border-color: var(--primary-red);
         }
 
-        /* الفوتر المتكامل والمعتمد لسياسات أدسنس */
+        /* الفوتر */
         .main-footer {
             background: #091524;
             color: #fff;
@@ -466,7 +541,7 @@
             font-size: 0.88rem;
         }
 
-        /* 🍪 شريط الموافقة على ملفات تعريف الارتباط (إلزامي لقبول أدسنس والـ GDPR) 🍪 */
+        /* 🍪 شريط الموافقة على ملفات تعريف الارتباط */
         .cookie-banner {
             position: fixed;
             bottom: 0;
@@ -484,6 +559,7 @@
             font-size: 0.92rem;
             border-top: 2px solid var(--primary-red);
         }
+
         .cookie-btn {
             background: var(--primary-red);
             color: #fff;
@@ -495,151 +571,456 @@
             white-space: nowrap;
             transition: background 0.2s;
         }
+
         .cookie-btn:hover {
             background: var(--dark-red);
         }
 
         @media (max-width: 992px) {
-            .news-grid { grid-template-columns: repeat(2, 1fr); }
-            .footer-grid { grid-template-columns: 1fr 1fr; }
-            .main-header { justify-content: center; text-align: center; }
-            .header-brand-side { flex-direction: column; gap: 10px; }
-            .header-slogan { border-right: none; padding-right: 0; }
+
+            .news-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .main-header {
+                justify-content: center;
+                text-align: center;
+            }
+
+            .header-brand-side {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .header-slogan {
+                border-right: none;
+                padding-right: 0;
+            }
         }
 
         @media (max-width: 600px) {
-            .news-grid { grid-template-columns: 1fr; }
-            .footer-grid { grid-template-columns: 1fr; }
-            .slogan-title { font-size: 1.1rem; justify-content: center; }
-            .slogan-cities { font-size: 0.8rem; justify-content: center; flex-wrap: wrap; }
-            .cookie-banner { flex-direction: column; text-align: center; }
+
+            .news-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .slogan-title {
+                font-size: 1.1rem;
+                justify-content: center;
+            }
+
+            .slogan-cities {
+                font-size: 0.8rem;
+                justify-content: center;
+                flex-wrap: wrap;
+            }
+
+            .cookie-banner {
+                flex-direction: column;
+                text-align: center;
+            }
         }
+
     </style>
 </head>
+
 <body>
 
+    <!-- ========================================================= -->
     <!-- الشريط العلوي -->
+    <!-- ========================================================= -->
+
     <div class="top-bar">
-        <div><i class="fas fa-calendar-alt"></i> شندي - ولاية نهر النيل | أخبار متجددة على مدار الساعة</div>
+
         <div>
-            <a href="/admin" style="color:#aaa; text-decoration:none;"><i class="fas fa-user-shield"></i> بوابة المحررين</a>
+            <i class="fas fa-calendar-alt"></i>
+            شندي - ولاية نهر النيل | أخبار متجددة على مدار الساعة
         </div>
+
+        <div>
+            <a href="/admin" style="color:#aaa; text-decoration:none;">
+                <i class="fas fa-user-shield"></i>
+                بوابة المحررين
+            </a>
+        </div>
+
     </div>
 
-    <!-- الهيدر الرئيسي مع الشعار والعبارة يساره وبطاقة الطقس شماله -->
+
+    <!-- ========================================================= -->
+    <!-- الهيدر الرئيسي -->
+    <!-- ========================================================= -->
+
     <header class="main-header">
+
         <div class="header-brand-side">
-            <!-- اللوجو مع تأثير النبض والإضاءة اللولبية المستمرة -->
+
+            <!-- اللوجو -->
             <a href="/" class="logo-container" title="صحيفة شندي الإخبارية">
-                <img src="{{ url_for('static', filename='uploads/logo.png') }}" 
-                     alt="شعار صحيفة شندي الإخبارية" 
-                     class="logo-image">
+
+                <img
+                    src="{{ url_for('static', filename='uploads/logo.png') }}"
+                    alt="شعار صحيفة شندي الإخبارية"
+                    class="logo-image"
+                    width="300"
+                    height="90"
+                    loading="eager"
+                    decoding="async"
+                >
+
             </a>
 
-            <!-- العبارة يسار اللوجو -->
+
+            <!-- العبارة -->
             <div class="header-slogan">
+
                 <div class="slogan-title">
-                    شندي <span>حورية جمال نهر النيل</span>
+                    شندي
+                    <span>حورية جمال نهر النيل</span>
                 </div>
+
                 <div class="slogan-cities">
+
                     <i class="fas fa-water"></i>
+
                     (عطبرة - بربر - الدامر - المتمه - ريفي ودحامد)
+
                 </div>
+
             </div>
+
         </div>
 
-        <!-- مكان استقبال بطاقة الطقس الحية من index.html -->
+
+        <!-- مكان استقبال بطاقة الطقس -->
         <div class="header-weather-slot">
+
             {% block header_weather %}{% endblock %}
+
         </div>
+
     </header>
 
-    <!-- الأقسام التفاعلية (مع دعم الحالتين للاقتصاد: إقتصادية / اقتصادية) -->
-    <nav class="navbar">
+
+    <!-- ========================================================= -->
+    <!-- الأقسام -->
+    <!-- ========================================================= -->
+
+    <nav class="navbar" aria-label="القائمة الرئيسية">
+
         <ul class="nav-container">
-            <li><a href="/" class="nav-link {% if not current_category %}active{% endif %}">الرئيسية</a></li>
-            <li><a href="/?category=سياسية" class="nav-link {% if current_category=='سياسية' %}active{% endif %}">أخبار سياسية</a></li>
-            <li><a href="/?category=اجتماعية" class="nav-link {% if current_category=='اجتماعية' %}active{% endif %}">أخبار اجتماعية</a></li>
-            <li><a href="/?category=إقتصادية" class="nav-link {% if current_category=='إقتصادية' or current_category=='اقتصادية' %}active{% endif %}">اقتصادية</a></li>
-            <li><a href="/?category=رياضية" class="nav-link {% if current_category=='رياضية' %}active{% endif %}">رياضية</a></li>
+
+            <li>
+                <a href="/" class="nav-link {% if not current_category %}active{% endif %}">
+                    الرئيسية
+                </a>
+            </li>
+
+            <li>
+                <a href="/?category=سياسية"
+                   class="nav-link {% if current_category=='سياسية' %}active{% endif %}">
+                    أخبار سياسية
+                </a>
+            </li>
+
+            <li>
+                <a href="/?category=اجتماعية"
+                   class="nav-link {% if current_category=='اجتماعية' %}active{% endif %}">
+                    أخبار اجتماعية
+                </a>
+            </li>
+
+            <li>
+                <a href="/?category=إقتصادية"
+                   class="nav-link {% if current_category=='إقتصادية' or current_category=='اقتصادية' %}active{% endif %}">
+                    اقتصادية
+                </a>
+            </li>
+
+            <li>
+                <a href="/?category=رياضية"
+                   class="nav-link {% if current_category=='رياضية' %}active{% endif %}">
+                    رياضية
+                </a>
+            </li>
+
         </ul>
+
     </nav>
 
-    <!-- 📢 مساحة إعلانية تحت الهيدر مطابقة لمواصفات Google AdSense 📢 -->
+
+    <!-- ========================================================= -->
+    <!-- مساحة إعلانية -->
+    <!-- ========================================================= -->
+
     <div class="ads-container">
+
         <div class="ad-banner-box">
-            <span>إعلان متجاوب (728x90) / Google AdSense Banner</span>
+
+            <span>
+                إعلان متجاوب (728x90) / Google AdSense Banner
+            </span>
+
         </div>
+
     </div>
 
+
+    <!-- ========================================================= -->
     <!-- محتوى الصفحة -->
+    <!-- ========================================================= -->
+
     {% block content %}{% endblock %}
 
-    <!-- الفوتر الكامل مع الصفحات الإلزامية لسياسات أدسنس وقوقل -->
+
+    <!-- ========================================================= -->
+    <!-- الفوتر -->
+    <!-- ========================================================= -->
+
     <footer class="main-footer">
+
         <div class="footer-grid">
+
+
+            <!-- عن الصحيفة -->
             <div class="footer-col">
+
                 <h4>عن صحيفة شندي</h4>
+
                 <p style="color:#94a3b8; line-height:1.7; font-size:0.92rem;">
-                    صحيفة إلكترونية مستقلة تنقل نبض مدينة شندي وقرى ومدن ولاية نهر النيل والسودان، تلتزم بالمهنية والشفافية والدقة ومواكبة الخبر لحظة حدوثه.
+
+                    صحيفة إلكترونية مستقلة تنقل نبض مدينة شندي
+                    وقرى ومدن ولاية نهر النيل والسودان،
+                    تلتزم بالمهنية والشفافية والدقة
+                    ومواكبة الخبر لحظة حدوثه.
+
                 </p>
+
             </div>
+
+
+            <!-- أقسام الأخبار -->
             <div class="footer-col">
+
                 <h4>أقسام الأخبار</h4>
+
                 <ul class="footer-links">
-                    <li><a href="/?category=سياسية">الأخبار السياسية</a></li>
-                    <li><a href="/?category=اجتماعية">الأخبار الاجتماعية</a></li>
-                    <li><a href="/?category=إقتصادية">اقتصادية</a></li>
-                    <li><a href="/?category=رياضية">رياضية</a></li>
+
+                    <li>
+                        <a href="/?category=سياسية">
+                            الأخبار السياسية
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="/?category=اجتماعية">
+                            الأخبار الاجتماعية
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="/?category=إقتصادية">
+                            اقتصادية
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="/?category=رياضية">
+                            رياضية
+                        </a>
+                    </li>
+
                 </ul>
+
             </div>
-            <!-- ⚖️ الصفحات القانونية الإلزامية لقبول Google AdSense ⚖️ -->
+
+
+            <!-- الصفحات القانونية -->
             <div class="footer-col">
+
                 <h4>سياسات وقوانين النشر</h4>
+
                 <ul class="footer-links">
-                    <li><a href="/privacy-policy"><i class="fas fa-shield-alt"></i> سياسة الخصوصية</a></li>
-                    <li><a href="/terms"><i class="fas fa-file-contract"></i> اتفاقية الاستخدام</a></li>
-                    <li><a href="/about-us"><i class="fas fa-info-circle"></i> من نحن</a></li>
-                    <li><a href="/contact"><i class="fas fa-envelope"></i> اتصل بنا</a></li>
+
+                    <li>
+                        <a href="/privacy-policy">
+                            <i class="fas fa-shield-alt"></i>
+                            سياسة الخصوصية
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="/terms">
+                            <i class="fas fa-file-contract"></i>
+                            اتفاقية الاستخدام
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="/about-us">
+                            <i class="fas fa-info-circle"></i>
+                            من نحن
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="/contact">
+                            <i class="fas fa-envelope"></i>
+                            اتصل بنا
+                        </a>
+                    </li>
+
                 </ul>
+
             </div>
+
+
+            <!-- بيانات التواصل -->
             <div class="footer-col">
+
                 <h4>بيانات التواصل</h4>
+
                 <ul class="footer-links">
-                    <li><i class="fas fa-envelope"></i> info@shendi-news.sd</li>
-                    <li><i class="fas fa-map-marker-alt"></i> شندي - السوق الكبير - شارع النيل</li>
-                    <li><i class="fab fa-facebook"></i> فيسبوك صحيفة شندي</li>
-                    <li><i class="fab fa-twitter"></i> منصة X (تويتر سابقاً)</li>
+
+                    <li>
+                        <i class="fas fa-envelope"></i>
+                        info@shendi-news.sd
+                    </li>
+
+                    <li>
+                        <i class="fas fa-map-marker-alt"></i>
+                        شندي - السوق الكبير - شارع النيل
+                    </li>
+
+                    <li>
+                        <i class="fab fa-facebook"></i>
+                        فيسبوك صحيفة شندي
+                    </li>
+
+                    <li>
+                        <i class="fab fa-twitter"></i>
+                        منصة X (تويتر سابقاً)
+                    </li>
+
                 </ul>
+
             </div>
+
         </div>
+
+
+        <!-- حقوق النشر -->
         <div class="footer-bottom">
-            جميع الحقوق محفوظة © صحيفة شندي 2026 | صوت شندي ونهر النيل
+
+            جميع الحقوق محفوظة © صحيفة شندي 2026 |
+            صوت شندي ونهر النيل
+
         </div>
+
     </footer>
 
-    <!-- 🍪 نافذة الموافقة على الكوكيز التلقائية لسياسات قوقل 🍪 -->
-    <div id="cookieNotice" class="cookie-banner" style="display: none;">
+
+    <!-- ========================================================= -->
+    <!-- 🍪 نافذة الموافقة على الكوكيز -->
+    <!-- ========================================================= -->
+
+    <div
+        id="cookieNotice"
+        class="cookie-banner"
+        style="display: none;"
+    >
+
         <div>
-            نحن نستخدم ملفات تعريف الارتباط (Cookies) لتحسين تجربة تصفحك وتقديم إعلانات مخصصة تتوافق مع اهتماماتك عبر شبكة Google AdSense. باستمرارك في تصفح الموقع، فإنك توافق على 
-            <a href="/privacy-policy" style="color: var(--gold-accent); text-decoration: underline;">سياسة الخصوصية</a>.
+
+            نحن نستخدم ملفات تعريف الارتباط (Cookies)
+            لتحسين تجربة تصفحك وتقديم إعلانات مخصصة
+            عبر شبكة Google AdSense.
+
+            باستمرارك في تصفح الموقع، فإنك توافق على
+
+            <a
+                href="/privacy-policy"
+                style="color: var(--gold-accent); text-decoration: underline;"
+            >
+                سياسة الخصوصية
+            </a>.
+
         </div>
-        <button onclick="acceptCookies()" class="cookie-btn"><i class="fas fa-check"></i> موافق ومتابعة</button>
+
+
+        <button
+            onclick="acceptCookies()"
+            class="cookie-btn"
+            type="button"
+        >
+
+            <i class="fas fa-check"></i>
+            موافق ومتابعة
+
+        </button>
+
     </div>
 
+
+    <!-- ========================================================= -->
+    <!-- JavaScript -->
+    <!-- ========================================================= -->
+
     <script>
+
         function acceptCookies() {
-            localStorage.setItem("shendiCookiesConsent", "accepted");
-            document.getElementById("cookieNotice").style.display = "none";
+
+            localStorage.setItem(
+                "shendiCookiesConsent",
+                "accepted"
+            );
+
+            document.getElementById(
+                "cookieNotice"
+            ).style.display = "none";
+
         }
-        document.addEventListener("DOMContentLoaded", function() {
-            if (!localStorage.getItem("shendiCookiesConsent")) {
-                document.getElementById("cookieNotice").style.display = "flex";
+
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            function() {
+
+                if (
+                    !localStorage.getItem(
+                        "shendiCookiesConsent"
+                    )
+                ) {
+
+                    document.getElementById(
+                        "cookieNotice"
+                    ).style.display = "flex";
+
+                }
+
             }
-        });
+        );
+
     </script>
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1632368230954022"
-     crossorigin="anonymous"></script>
+
+
+    <!-- ========================================================= -->
+    <!-- Google AdSense -->
+    <!-- ========================================================= -->
+
+    <script
+        async
+        src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1632368230954022"
+        crossorigin="anonymous">
+    </script>
 
 </body>
 </html>
