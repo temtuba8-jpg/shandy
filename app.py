@@ -737,6 +737,89 @@ def sitemap_xml():
 
     urls = []
 
+    # =====================================================
+    # تحويل تاريخ الخبر إلى صيغة صحيحة لـ Google Sitemap
+    # =====================================================
+    def sitemap_lastmod(value):
+
+        if not value:
+            return None
+
+        try:
+
+            # إذا كان التاريخ من MongoDB كـ datetime
+            if isinstance(value, datetime):
+
+                return value.strftime(
+                    "%Y-%m-%d"
+                )
+
+            value_text = str(value).strip()
+
+            if not value_text:
+                return None
+
+            # =================================================
+            # محاولة قراءة ISO 8601
+            # =================================================
+            try:
+
+                normalized_value = value_text.replace(
+                    "Z",
+                    "+00:00"
+                )
+
+                parsed_date = datetime.fromisoformat(
+                    normalized_value
+                )
+
+                return parsed_date.strftime(
+                    "%Y-%m-%d"
+                )
+
+            except Exception:
+                pass
+
+            # =================================================
+            # محاولة قراءة صيغ التواريخ الشائعة
+            # =================================================
+
+            possible_formats = [
+                "%Y-%m-%d",
+                "%Y/%m/%d",
+                "%d-%m-%Y",
+                "%d/%m/%Y",
+                "%Y-%m-%d %H:%M:%S",
+                "%Y/%m/%d %H:%M:%S",
+                "%d-%m-%Y %H:%M:%S",
+                "%d/%m/%Y %H:%M:%S"
+            ]
+
+            for date_format in possible_formats:
+
+                try:
+
+                    parsed_date = datetime.strptime(
+                        value_text,
+                        date_format
+                    )
+
+                    return parsed_date.strftime(
+                        "%Y-%m-%d"
+                    )
+
+                except Exception:
+                    continue
+
+        except Exception as e:
+
+            print(
+                "Sitemap lastmod conversion error:",
+                e
+            )
+
+        return None
+
     # الصفحة الرئيسية
     urls.append({
         "loc": f"{base_url}/",
@@ -795,12 +878,27 @@ def sitemap_xml():
                 f"{news_id}"
             )
 
-        urls.append({
+        news_data = {
             "loc": news_url,
             "priority": "0.8",
-            "changefreq": "daily",
-            "lastmod": item.get("created_at")
-        })
+            "changefreq": "daily"
+        }
+
+        # =================================================
+        # إضافة lastmod فقط بعد التأكد من صحة التاريخ
+        # =================================================
+
+        lastmod_text = sitemap_lastmod(
+            item.get("created_at")
+        )
+
+        if lastmod_text:
+
+            news_data["lastmod"] = lastmod_text
+
+        urls.append(
+            news_data
+        )
 
     # بناء XML
     xml = [
@@ -831,24 +929,19 @@ def sitemap_xml():
             f"<loc>{loc}</loc>"
         )
 
+        # =================================================
+        # lastmod أصبح دائمًا بصيغة:
+        # YYYY-MM-DD
+        # =================================================
+
         if item.get("lastmod"):
 
-            lastmod = item["lastmod"]
-
-            if isinstance(lastmod, datetime):
-
-                lastmod_text = lastmod.strftime(
-                    "%Y-%m-%dT%H:%M:%S"
-                )
-
-            else:
-
-                lastmod_text = str(
-                    lastmod
-                )
+            lastmod_text = escape(
+                str(item["lastmod"])
+            )
 
             xml.append(
-                f"<lastmod>{escape(lastmod_text)}</lastmod>"
+                f"<lastmod>{lastmod_text}</lastmod>"
             )
 
         xml.append(
