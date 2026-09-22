@@ -228,10 +228,9 @@ def format_date_filter(val):
 
 @app.route('/google9269c338022e040d.html')
 def google_verification():
-
     return Response(
         'google-site-verification: google9269c338022e040d.html',
-        mimetype='text/plain'
+        mimetype='text/html'
     )
 
 
