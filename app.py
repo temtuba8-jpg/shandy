@@ -1547,25 +1547,21 @@ def delete_manager(manager_id):
         url_for('manage_managers')
     )
 # =========================================================
-# روت اعلا
+# روت ads.txt
 # =========================================================
 @app.route('/ads.txt')
 def ads_txt():
-    return "google.com, pub-1632368230954022, DIRECT, f08c47fec0942fa0", 200, {
-        'Content-Type': 'text/plain'
+    response = "google.com, pub-1632368230954022, DIRECT, f08c47fec0942fa0\n"
+    return response, 200, {
+        'Content-Type': 'text/plain; charset=utf-8'
     }
+
+
 # =========================================================
 # تشغيل التطبيق
 # =========================================================
-
 if __name__ == '__main__':
-
-    port = int(
-        os.environ.get(
-            "PORT",
-            10000
-        )
-    )
+    port = int(os.environ.get("PORT", 10000))
 
     app.run(
         host="0.0.0.0",
