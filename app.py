@@ -1551,10 +1551,13 @@ def delete_manager(manager_id):
 # =========================================================
 @app.route('/ads.txt')
 def ads_txt():
-    response = "google.com, pub-1632368230954022, DIRECT, f08c47fec0942fa0\n"
-    return response, 200, {
-        'Content-Type': 'text/plain; charset=utf-8'
-    }
+    return (
+        "google.com, pub-1632368230954022, DIRECT, f08c47fec0942fa0\n",
+        200,
+        {
+            'Content-Type': 'text/plain; charset=utf-8'
+        }
+    )
 
 
 # =========================================================
