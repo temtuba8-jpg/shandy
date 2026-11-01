@@ -650,6 +650,37 @@
             }
         }
 
+
+        /* إصلاح شريط الأقسام على الجوال: الرئيسية ثابتة وباقي الأقسام قابلة للتمرير */
+        @media (max-width: 600px) {
+            .nav-container {
+                justify-content: flex-start;
+                align-items: center;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                gap: 8px;
+                padding: 10px;
+                direction: rtl;
+                scrollbar-width: none;
+                -webkit-overflow-scrolling: touch;
+            }
+            .nav-container::-webkit-scrollbar { display: none; }
+            .nav-container li { flex: 0 0 auto; }
+            .nav-container li:first-child {
+                position: sticky;
+                right: 0;
+                z-index: 5;
+                background: #fff;
+                border-radius: 20px;
+            }
+            .nav-link {
+                display: block;
+                padding: 9px 13px;
+                font-size: 13px;
+                white-space: nowrap;
+            }
+        }
+
     </style>
 </head>
 
