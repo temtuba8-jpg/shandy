@@ -454,6 +454,16 @@ def news_detail(news_id, slug=None):
 
             return "الخبر غير موجود أو انتهت صلاحيته", 404
 
+        # عداد مشاهدات مستقل لكل خبر، باستخدام اتصال MongoDB الحالي
+        db.news.update_one(
+            {"_id": news_item["_id"]},
+            {"$inc": {"views": 1}}
+        )
+        news_item["views"] = db.news.find_one(
+            {"_id": news_item["_id"]},
+            {"views": 1}
+        ).get("views", 0)
+
         related_news = list(
             db.news.find({
                 "category": news_item.get('category'),
@@ -503,6 +513,9 @@ def news_detail(news_id, slug=None):
                 <h1 style="color: #0f2c59; font-size: 28px; line-height: 1.6; margin-bottom: 20px;">
                     {{ news.title }}
                 </h1>
+                <div style="color:#64748b; margin-bottom:18px; font-size:14px;">
+                    <i class="fas fa-eye"></i> {{ news.views | default(0) }} مشاهدة
+                </div>
 
                 {% if news.image %}
 
