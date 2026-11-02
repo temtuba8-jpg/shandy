@@ -184,6 +184,7 @@
             <span><i class="far fa-clock"></i> تاريخ النشر: {{ news.created_at }}</span>
             <span><i class="fas fa-map-marker-alt"></i> شندي - ولاية نهر النيل</span>
             <span><i class="fas fa-user-edit"></i> صحيفة شندي</span>
+            <span><i class="fas fa-eye" aria-hidden="true"></i> {{ news.views | default(0) }} مشاهدة</span>
         </div>
 
         <!-- 🔗 صندوق أزرار مشاركة الخبر 🔗 -->
