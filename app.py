@@ -115,36 +115,42 @@ except Exception as e:
 
 
 # =========================================================
-# الحذف التلقائي للأخبار القديمة
-# يبقى كما طلبت: حذف الأخبار بعد 30 يوم
+# الحذف التلقائي للأخبار القديمة - معطل نهائيًا
+# تم تعطيل التنفيذ فقط مع الاحتفاظ بالكود الأصلي أدناه
 # =========================================================
 
 def clean_expired_news():
-    try:
-        expiry_date = datetime.now() - timedelta(days=30)
-
-        db.news.delete_many({
-            "created_at": {
-                "$lt": expiry_date
-            }
-        })
-
-        db.ticker_news.delete_many({
-            "created_at": {
-                "$lt": expiry_date
-            }
-        })
-
-    except Exception:
-        pass
+    # الحذف التلقائي متوقف بالكامل، ولا يتم حذف أي أخبار أو شريط إخباري.
+    pass
 
 
-@app.before_request
-def auto_clean():
-    clean_expired_news()
+# الكود القديم محفوظ أدناه كتعليقات فقط، ولن يُنفّذ:
+# def clean_expired_news():
+#     try:
+#         expiry_date = datetime.now() - timedelta(days=30)
+
+#         db.news.delete_many({
+#             "created_at": {
+#                 "$lt": expiry_date
+#             }
+#         })
+
+#         db.ticker_news.delete_many({
+#             "created_at": {
+#                 "$lt": expiry_date
+#             }
+#         })
+
+#     except Exception:
+#         pass
 
 
-# =========================================================
+# @app.before_request
+# def auto_clean():
+#     clean_expired_news()
+
+
+# # =========================================================
 # دالة تحويل عناوين الأخبار إلى Slug
 # =========================================================
 
